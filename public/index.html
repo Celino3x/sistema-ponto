@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema de Ponto</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        body {
+            background: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        .app {
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        }
+        h1 { 
+            font-size: 24px; 
+            color: #0b1a33; 
+            margin-bottom: 20px; 
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .geo-box {
+            background: #4f46e5;
+            color: white;
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+        .geo-box .coord {
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .geo-box .status-gps {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .btn-ponto {
+            width: 100%;
+            padding: 16px;
+            background: #0b1a33;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-ponto:hover { 
+            background: #1e2f4a; 
+        }
+        .btn-ponto:active {
+            transform: scale(0.97);
+        }
+        .input-group {
+            margin: 12px 0;
+        }
+        .input-group label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #0b1a33;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        .input-group input:focus, .input-group select:focus {
+            border-color: #4f46e5;
+            outline: none;
+        }
+        .historico {
+            margin-top: 24px;
+        }
+        .historico h3 {
+            margin-bottom: 12px;
+            color: #0b1a33;
+        }
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 4px solid #4f46e5;
+        }
+        .item .info {
+            flex: 1;
+        }
+        .item .info .tipo {
+            font-weight: 600;
+            color: #0b1a33;
+        }
+        .item .info .data {
+            font-size: 12px;
+            color: #64748b;
+        }
+        .item .status {
+            font-size: 11px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status.normal { background: #dcfce7; color: #16a34a; }
+        .status.pendente { background: #fef3c7; color: #d97706; }
+        .status.abonado { background: #e0e7ff; color: #4f46e5; }
+        .toast {
+            margin-top: 16px;
+            padding: 12px;
+            background: #0b1a33;
+            color: white;
+            border-radius: 12px;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        .toast.show { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .gestor {
+            margin-top: 24px;
+            background: #f1f5f9;
+            padding: 16px;
+            border-radius: 16px;
+        }
+        .gestor h4 {
+            margin-bottom: 12px;
+            color: #0b1a33;
+        }
+        .gestor .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .gestor button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            flex: 1;
+            min-width: 100px;
+            font-size: 13px;
+        }
+        .btn-relatorio { background: #4f46e5; color: white; }
+        .btn-relatorio:hover { background: #4338ca; }
+        .btn-ajustar { background: #e2e8f0; color: #0b1a33; }
+        .btn-ajustar:hover { background: #cbd5e1; }
+        .hidden { display: none; }
+        .area-ajuste {
+            margin-top: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+        }
+        .area-ajuste input, .area-ajuste select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-top: 6px;
+            font-size: 13px;
+        }
+        .area-ajuste .btn-salvar {
+            width: 100%;
+            margin-top: 8px;
+            padding: 10px;
+            background: #22c55e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .area-ajuste .btn-salvar:hover { background: #16a34a; }
+        .vazio {
+            text-align: center;
+            color: #94a3b8;
+            padding: 20px;
+        }
+        .badge-online {
+            display: inline-block;
+            background: #dcfce7;
+            color: #16a34a;
+            padding: 2px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <h1>
+            ⏱️ Ponto
+            <span class="badge-online"><i class="fas fa-circle" style="font-size: 8px; margin-right: 4px;"></i> Online</span>
+        </h1>
+
+        <!-- Geolocalização -->
+        <div class="geo-box">
+            <div class="status-gps">
+                <span><i class="fas fa-satellite-dish"></i> GPS</span>
+                <span id="statusGPS"><i class="fas fa-check-circle"></i> Ativo</span>
+            </div>
+            <div class="coord" id="coordenadas">
+                -23.5505 <small>lat</small> / -46.6333 <small>lng</small>
+            </div>
+            <div style="font-size:12px; opacity:0.7; margin-top:4px;">
+                <i class="fas fa-map-pin"></i> Precisão: ±12m
+            </div>
+        </div>
+
+        <!-- Formulário de registro -->
+        <div class="input-group">
+            <label><i class="fas fa-user"></i> Colaborador (ID)</label>
+            <input type="text" id="colaboradorId" value="1042" placeholder="Digite seu ID" />
+        </div>
+        <div class="input-group">
+            <label><i class="fas fa-arrows-left-right"></i> Tipo</label>
+            <select id="tipoPonto">
+                <option value="entrada">🟢 Entrada</option>
+                <option value="saida">🔴 Saída</option>
+            </select>
+        </div>
+
+        <button class="btn-ponto" id="btnRegistrar">
+            <i class="fas fa-fingerprint"></i> Bater Ponto
+        </button>
+
+        <!-- Último registro -->
+        <div id="ultimoRegistro" style="margin-top: 12px; font-size: 14px; color: #64748b; text-align: center;"></div>
+
+        <!-- Histórico -->
+        <div class="historico">
+            <h3><i class="fas fa-history"></i> Histórico</h3>
+            <div id="listaHistorico"></div>
+        </div>
+
+        <!-- Área do Gestor -->
+        <div class="gestor">
+            <h4><i class="fas fa-user-tie"></i> Área do Gestor</h4>
+            <div class="btn-group">
+                <button class="btn-relatorio" id="btnRelatorio"><i class="fas fa-file-alt"></i> Relatório</button>
+                <button class="btn-ajustar" id="btnAjustar"><i class="fas fa-edit"></i> Ajustar Ponto</button>
+            </div>
+            <div id="areaAjuste" class="hidden area-ajuste">
+                <label style="font-weight:600; font-size:13px;">ID do Registro</label>
+                <input type="text" id="idAjuste" placeholder="Ex: 1, 2, 3..." />
+                <label style="font-weight:600; font-size:13px; margin-top:8px; display:block;">Status</label>
+                <select id="statusAjuste">
+                    <option value="normal">Normal</option>
+                    <option value="pendente">Pendente</option>
+                    <option value="abonado">Abonado</option>
+                </select>
+                <label style="font-weight:600; font-size:13px; margin-top:8px; display:block;">Justificativa</label>
+                <input type="text" id="justificativaAjuste" placeholder="Motivo da correção..." />
+                <button class="btn-salvar" id="btnSalvarAjuste"><i class="fas fa-save"></i> Salvar Ajuste</button>
+            </div>
+        </div>
+
+        <!-- Toast de notificação -->
+        <div class="toast" id="toast"></div>
+    </div>
+
+    <script>
+        // ===================== CONFIGURAÇÃO =====================
+        const API_URL = 'http://localhost:3000/api/ponto';
+        const colaboradorInput = document.getElementById('colaboradorId');
+
+        // ===================== GEOLOCALIZAÇÃO =====================
+        let latAtual = -23.5505;
+        let lngAtual = -46.6333;
+
+        function obterLocalizacao() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        latAtual = pos.coords.latitude;
+                        lngAtual = pos.coords.longitude;
+                        document.getElementById('coordenadas').innerHTML = 
+                            `${latAtual.toFixed(4)} <small>lat</small> / ${lngAtual.toFixed(4)} <small>lng</small>`;
+                        document.getElementById('statusGPS').innerHTML = '<i class="fas fa-check-circle"></i> Ativo';
+                    },
+                    (erro) => {
+                        document.getElementById('statusGPS').innerHTML = '🟡 Simulado';
+                        console.warn('Usando localização simulada:', erro.message);
+                    }
+                );
+            } else {
+                document.getElementById('statusGPS').innerHTML = '🟡 Não suportado';
+            }
+        }
+
+        obterLocalizacao();
+
+        // ===================== TOAST =====================
+        function mostrarToast(mensagem, cor = '#0b1a33') {
+            const toast = document.getElementById('toast');
+            toast.textContent = mensagem;
+            toast.style.background = cor;
+            toast.className = 'toast show';
+            setTimeout(() => { toast.className = 'toast'; }, 3500);
+        }
+
+        // ===================== REGISTRAR PONTO =====================
+        document.getElementById('btnRegistrar').addEventListener('click', async () => {
+            const colaborador = colaboradorInput.value.trim();
+            const tipo = document.getElementById('tipoPonto').value;
+
+            if (!colaborador) {
+                mostrarToast('⚠️ Digite o ID do colaborador', '#dc2626');
+                return;
+            }
+
+            const dados = {
+                colaborador,
+                latitude: latAtual,
+                longitude: lngAtual,
+                tipo
+            };
+
+            try {
+                const resposta = await fetch(`${API_URL}/registrar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+
+                const resultado = await resposta.json();
+
+                if (resposta.ok) {
+                    mostrarToast(`✅ ${resultado.mensagem}`, '#16a34a');
+                    carregarHistorico();
+                } else {
+                    mostrarToast(`❌ Erro: ${resultado.erro}`, '#dc2626');
+                }
+            } catch (erro) {
+                mostrarToast('❌ Erro ao conectar com o servidor', '#dc2626');
+                console.error(erro);
+            }
+        });
+
+        // ===================== CARREGAR HISTÓRICO =====================
+        async function carregarHistorico() {
+            const id = colaboradorInput.value.trim();
+            if (!id) {
+                document.getElementById('listaHistorico').innerHTML = '<div class="vazio">Digite um ID para ver o histórico</div>';
+                return;
+            }
+
+            try {
+                const resposta = await fetch(`${API_URL}/historico/${id}`);
+                const dados = await resposta.json();
+
+                const lista = document.getElementById('listaHistorico');
+                lista.innerHTML = '';
+
+                if (dados.total === 0) {
+                    lista.innerHTML = '<div class="vazio">Nenhum registro encontrado</div>';
+                    document.getElementById('ultimoRegistro').textContent = '';
+                    return;
+                }
+
+                // Último registro
+                const ultimo = dados.registros[dados.registros.length - 1];
+                document.getElementById('ultimoRegistro').innerHTML = 
+                    `Último: ${ultimo.tipo === 'entrada' ? '🟢 Entrada' : '🔴 Saída'} às ${new Date(ultimo.dataHora).toLocaleTimeString('pt-BR')}`;
+
+                // Listar todos (do mais recente para o mais antigo)
+                const registrosReversos = [...dados.registros].reverse();
+                registrosReversos.forEach((r) => {
+                    const div = document.createElement('div');
+                    div.className = 'item';
+                    div.innerHTML = `
+                        <div class="info">
+                            <div class="tipo">${r.tipo === 'entrada' ? '🟢 Entrada' : '🔴 Saída'}</div>
+                            <div class="data">${new Date(r.dataHora).toLocaleString('pt-BR')}</div>
+                            ${r.justificativa ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">📝 ${r.justificativa}</div>` : ''}
+                        </div>
+                        <span class="status ${r.status}">${r.status}</span>
+                    `;
+                    lista.appendChild(div);
+                });
+            } catch (erro) {
+                console.error('Erro ao carregar histórico:', erro);
+                document.getElementById('listaHistorico').innerHTML = '<div class="vazio">Erro ao carregar histórico</div>';
+            }
+        }
+
+        // Carregar histórico ao digitar o ID
+        colaboradorInput.addEventListener('change', carregarHistorico);
+        colaboradorInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') carregarHistorico();
+        });
+        carregarHistorico();
+
+        // ===================== GESTOR =====================
+        // Mostrar área de ajuste
+        document.getElementById('btnAjustar').addEventListener('click', () => {
+            const area = document.getElementById('areaAjuste');
+            area.classList.toggle('hidden');
+        });
+
+        // Salvar ajuste
+        document.getElementById('btnSalvarAjuste').addEventListener('click', async () => {
+            const id = document.getElementById('idAjuste').value.trim();
+            const status = document.getElementById('statusAjuste').value;
+            const justificativa = document.getElementById('justificativaAjuste').value.trim();
+
+            if (!id) {
+                mostrarToast('⚠️ Digite o ID do registro', '#dc2626');
+                return;
+            }
+
+            try {
+                const resposta = await fetch(`${API_URL}/corrigir/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status,
+                        justificativa: justificativa || undefined,
+                        aprovadoPor: 'Gestor'
+                    })
+                });
+
+                const resultado = await resposta.json();
+
+                if (resposta.ok) {
+                    mostrarToast(`✅ ${resultado.mensagem}`, '#16a34a');
+                    carregarHistorico();
+                    document.getElementById('idAjuste').value = '';
+                    document.getElementById('justificativaAjuste').value = '';
+                } else {
+                    mostrarToast(`❌ Erro: ${resultado.erro}`, '#dc2626');
+                }
+            } catch (erro) {
+                mostrarToast('❌ Erro ao conectar com o servidor', '#dc2626');
+                console.error(erro);
+            }
+        });
+
+        // ===================== RELATÓRIO =====================
+        document.getElementById('btnRelatorio').addEventListener('click', async () => {
+            const id = colaboradorInput.value.trim();
+            if (!id) {
+                mostrarToast('⚠️ Digite o ID do colaborador', '#dc2626');
+                return;
+            }
+
+            try {
+                const resposta = await fetch(`${API_URL}/historico/${id}`);
+                const dados = await resposta.json();
+
+                if (dados.total === 0) {
+                    mostrarToast('📭 Nenhum registro para este colaborador', '#d97706');
+                    return;
+                }
+
+                let relatorio = `📊 RELATÓRIO DE PONTO\n`;
+                relatorio += `Colaborador: ${id}\n`;
+                relatorio += `Data: ${new Date().toLocaleString('pt-BR')}\n`;
+                relatorio += `${'='.repeat(50)}\n\n`;
+                relatorio += `Total de registros: ${dados.total}\n\n`;
+
+                dados.registros.forEach((r, i) => {
+                    relatorio += `${i+1}. ${new Date(r.dataHora).toLocaleString('pt-BR')}\n`;
+                    relatorio += `   Tipo: ${r.tipo.toUpperCase()}\n`;
+                    relatorio += `   Status: ${r.status.toUpperCase()}\n`;
+                    if (r.justificativa) relatorio += `   Justificativa: ${r.justificativa}\n`;
+                    relatorio += `   Local: ${r.latitude}, ${r.longitude}\n`;
+                    relatorio += `   ${'-'.repeat(30)}\n`;
+                });
+
+                // Baixar como arquivo .txt
+                const blob = new Blob([relatorio], { type: 'text/plain;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `relatorio_${id}_${new Date().toISOString().slice(0,10)}.txt`;
+                link.click();
+
+                mostrarToast(`📋 Relatório gerado! ${dados.total} registros`, '#4f46e5');
+
+            } catch (erro) {
+                mostrarToast('❌ Erro ao gerar relatório', '#dc2626');
+                console.error(erro);
+            }
+        });
+    </script>
+</body>
+</html>
