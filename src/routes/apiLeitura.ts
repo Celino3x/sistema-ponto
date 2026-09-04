@@ -6,7 +6,8 @@ const router = Router();
 
 // ===================== VERIFICAR API KEY =====================
 function verificarApiKey(req: any, res: any, next: any) {
-  const apiKey = req.headers['x-api-key'];
+  // Aceita a chave em qualquer um desses cabeçalhos
+  const apiKey = req.headers['x-api-key'] || req.headers['apikey'] || req.headers['api_key'];
   
   if (apiKey !== process.env.SE_READ_API_KEY) {
     return res.status(403).json({ error: 'Acesso negado: API Key inválida' });
@@ -14,11 +15,14 @@ function verificarApiKey(req: any, res: any, next: any) {
   next();
 }
 
-// ===================== CONSULTAR COLABORADORES (APENAS 1 OBJETO) =====================
+// ===================== CONSULTAR COLABORADORES =====================
 router.get('/colaboradores', verificarApiKey, async (req: any, res: any) => {
   try {
-    // Retorna apenas o PRIMEIRO colaborador como exemplo, e como UM OBJETO ÚNICO
     const primeiroColaborador = await prisma.colaborador.findFirst({
+      where: {
+        funcao: { not: null },
+        area: { not: null }
+      },
       select: {
         id: true,
         nome: true,
@@ -29,8 +33,8 @@ router.get('/colaboradores', verificarApiKey, async (req: any, res: any) => {
       }
     });
 
-    // Estrutura: "colaboradores" é um OBJETO, não um array.
-    return res.json({ colaboradores: premierColaborador });
+    // Retorna como objeto (uma chave para o SoftExpert aprender)
+    return res.json({ colaboradores: primeiroColaborador });
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao consultar colaboradores' });
   }
