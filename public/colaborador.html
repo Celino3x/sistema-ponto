@@ -296,7 +296,8 @@
             formData.append('upload_preset', UPLOAD_PRESET);
 
             try {
-                const resposta = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, {
+                // MUDANÇA IMPORTANTE: Usamos /raw/upload para PDFs e arquivos brutos!
+                const resposta = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/raw/upload`, {
                     method: 'POST',
                     body: formData
                 });
