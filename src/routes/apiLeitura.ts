@@ -33,7 +33,7 @@ router.get('/colaboradores', verificarApiKey, async (req: any, res: any) => {
       }
     });
 
-    // Retorna como objeto (uma chave para o SoftExpert aprender)
+    // Retorna como objeto (uma chave para leitura)
     return res.json({ colaboradores: primeiroColaborador });
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao consultar colaboradores' });
