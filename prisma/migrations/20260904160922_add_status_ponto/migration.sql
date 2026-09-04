@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Ponto" ADD COLUMN     "status" TEXT NOT NULL DEFAULT 'NORMAL';

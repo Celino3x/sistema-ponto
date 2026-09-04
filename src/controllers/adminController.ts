@@ -54,20 +54,28 @@ export const listarSolicitacoes = async (req: Request, res: Response) => {
   }
 };
 
-// ===================== LISTAR JUSTIFICATIVAS PENDENTES =====================
+// ===================== LISTAR JUSTIFICATIVAS PENDENTES (COM ALERTA DE 15 DIAS) =====================
 export const listarJustificativas = async (req: Request, res: Response) => {
   try {
     const justificativas = await prisma.justificativaAbono.findMany({
       where: { status: 'PENDENTE' },
       include: { colaborador: true },
     });
-    return res.json(justificativas);
+
+    // Adiciona um campo de alerta para cada justificativa
+    const justificativasComAlerta = justificativas.map((just) => {
+      const diasAfastamento = Math.ceil((new Date(just.dataFalta).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      const alerta15Dias = diasAfastamento > 15;
+      return { ...just, alerta15Dias };
+    });
+
+    return res.json(justificativasComAlerta);
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao listar justificativas' });
   }
 };
 
-// ===================== APROVAR / REJEITAR JUSTIFICATIVA =====================
+// ===================== APROVAR / REJEITAR JUSTIFICATIVA (COM ABONO AUTOMÁTICO) =====================
 export const aprovarJustificativa = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -78,13 +86,76 @@ export const aprovarJustificativa = async (req: Request, res: Response) => {
       data: { status },
     });
 
+    // ===================== LÓGICA DE ABONO AUTOMÁTICO =====================
+    if (status === 'APROVADO') {
+      // 1. Define os horários padrão de expediente (08:00 às 18:00)
+      const dataFalta = justificativa.dataFalta;
+      const horaEntrada = new Date(dataFalta);
+      horaEntrada.setHours(8, 0, 0, 0); // 08:00
+
+      const horaSaida = new Date(dataFalta);
+      horaSaida.setHours(18, 0, 0, 0); // 18:00
+
+      const horasTrabalhadas = 10; // 10 horas de expediente
+
+      // 2. Cria um registro de ponto com status "ABONADO"
+      await prisma.ponto.create({
+        data: {
+          colaboradorId: justificativa.colaboradorId,
+          entrada: horaEntrada,
+          saida: horaSaida,
+          horasTrabalhadas: horasTrabalhadas,
+          status: 'ABONADO', // Você precisa adicionar esse campo no schema!
+        },
+      });
+    }
+
     return res.json(justificativa);
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao aprovar justificativa' });
   }
 };
 
-// ===================== RELATÓRIO (INDIVIDUAL OU GERAL) =====================
+// ===================== APROVAR EM LOTE (JUSTIFICATIVAS) =====================
+export const aprovarTodasJustificativas = async (req: Request, res: Response) => {
+  try {
+    const { status } = req.body;
+    const justificativas = await prisma.justificativaAbono.findMany({
+      where: { status: 'PENDENTE' },
+    });
+
+    for (const just of justificativas) {
+      await prisma.justificativaAbono.update({
+        where: { id: just.id },
+        data: { status },
+      });
+
+      if (status === 'APROVADO') {
+        const dataFalta = just.dataFalta;
+        const horaEntrada = new Date(dataFalta);
+        horaEntrada.setHours(8, 0, 0, 0);
+        const horaSaida = new Date(dataFalta);
+        horaSaida.setHours(18, 0, 0, 0);
+
+        await prisma.ponto.create({
+          data: {
+            colaboradorId: just.colaboradorId,
+            entrada: horaEntrada,
+            saida: horaSaida,
+            horasTrabalhadas: 10,
+            status: 'ABONADO',
+          },
+        });
+      }
+    }
+
+    return res.json({ message: `${justificativas.length} justificativas ${status.toLowerCase()}!` });
+  } catch (error) {
+    return res.status(500).json({ error: 'Erro ao aprovar em lote' });
+  }
+};
+
+// ===================== RELATÓRIO =====================
 export const relatorioHoras = async (req: Request, res: Response) => {
   try {
     const { colaboradorId, dataInicio, dataFim } = req.query;
@@ -137,22 +208,18 @@ export const excluirColaborador = async (req: Request, res: Response) => {
     const { id } = req.params;
     const colaboradorId = Number(id);
 
-    // 1. Exclui os pontos
     await prisma.ponto.deleteMany({
       where: { colaboradorId },
     });
 
-    // 2. Exclui as justificativas
     await prisma.justificativaAbono.deleteMany({
       where: { colaboradorId },
     });
 
-    // 3. Exclui as solicitações de correção
     await prisma.solicitacaoCorrecao.deleteMany({
       where: { colaboradorId },
     });
 
-    // 4. Exclui o colaborador
     await prisma.colaborador.delete({
       where: { id: colaboradorId },
     });
@@ -169,7 +236,7 @@ export const aprovarSolicitacao = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    
+
     const solicitacao = await prisma.solicitacaoCorrecao.update({
       where: { id: Number(id) },
       data: { status },
@@ -188,10 +255,10 @@ export const aprovarSolicitacao = async (req: Request, res: Response) => {
   }
 };
 
-// ===================== APROVAR EM LOTE (TODAS) =====================
+// ===================== APROVAR EM LOTE (SOLICITAÇÕES) =====================
 export const aprovarTodas = async (req: Request, res: Response) => {
   try {
-    const { status } = req.body; // "APROVADO" ou "REJEITADO"
+    const { status } = req.body;
     const solicitacoes = await prisma.solicitacaoCorrecao.findMany({
       where: { status: 'PENDENTE' },
     });

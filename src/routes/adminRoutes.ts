@@ -5,6 +5,7 @@ import {
   listarSolicitacoes, 
   listarJustificativas,
   aprovarJustificativa,
+  aprovarTodasJustificativas,
   relatorioHoras, 
   aprovarSolicitacao, 
   aprovarTodas,
@@ -34,5 +35,6 @@ router.put('/solicitacoes/aprovar-todas', aprovarTodas);
 // Rotas de Justificativas (Abono de Falta)
 router.get('/justificativas', listarJustificativas);
 router.put('/justificativas/:id', aprovarJustificativa);
+router.put('/justificativas/aprovar-todas', aprovarTodasJustificativas);
 
 export default router;
