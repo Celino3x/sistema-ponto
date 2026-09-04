@@ -14,10 +14,11 @@ function verificarApiKey(req: any, res: any, next: any) {
   next();
 }
 
-// ===================== CONSULTAR COLABORADORES (OBJETO JSON) =====================
+// ===================== CONSULTAR COLABORADORES =====================
 router.get('/colaboradores', verificarApiKey, async (req: any, res: any) => {
   try {
-    const colaboradores = await prisma.colaborador.findMany({
+    // Retorna apenas o PRIMEIRO colaborador como exemplo
+    const primeiroColaborador = await prisma.colaborador.findFirst({
       select: {
         id: true,
         nome: true,
@@ -27,8 +28,9 @@ router.get('/colaboradores', verificarApiKey, async (req: any, res: any) => {
         usuario: true
       }
     });
-    // <-- RETORNA COMO OBJETO (COM CHAVE "colaboradores")
-    return res.json({ colaboradores });
+
+    // Retorna como objeto com chave "colaboradores", mas com apenas UM item
+    return res.json({ colaboradores: [primeiroColaborador] });
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao consultar colaboradores' });
   }
