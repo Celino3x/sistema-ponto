@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Colaborador {
+  id           Int      @id @default(autoincrement())
+  nome         String
+  matricula    String   @unique
+  endereco     String
+  usuario      String   @unique
+  senha        String
+  role         String   @default("COLABORADOR")
+  pontos       Ponto[]
+  solicitacoes SolicitacaoCorrecao[]
+  justificativas JustificativaAbono[]  // <--- ADICIONE ESTA LINHA AQUI
+  criadoEm     DateTime @default(now())
+}
+
+model Ponto {
+  id           Int      @id @default(autoincrement())
+  colaboradorId Int
+  colaborador  Colaborador @relation(fields: [colaboradorId], references: [id])
+  entrada      DateTime
+  saida        DateTime?
+  horasTrabalhadas Float? // Calculado automaticamente (em horas decimais)
+  criadoEm     DateTime @default(now())
+}
+
+model SolicitacaoCorrecao {
+  id           Int      @id @default(autoincrement())
+  colaboradorId Int
+  colaborador  Colaborador @relation(fields: [colaboradorId], references: [id])
+  pontoId      Int?
+  tipo         String   @default("entrada") // NOVO CAMPO adicionado aqui!
+  motivo       String
+  novaHora     DateTime
+  status       String   @default("PENDENTE")
+  criadoEm     DateTime @default(now())
+}
+
+model JustificativaAbono {
+  id            Int      @id @default(autoincrement())
+  colaboradorId Int
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
+  dataFalta     DateTime // O dia que o colaborador quer justificar
+  motivo        String
+  anexoUrl      String?  // Onde vai ficar salvo o arquivo (ex: URL ou caminho no servidor)
+  status        String   @default("PENDENTE") // PENDENTE, APROVADO, REJEITADO
+  criadoEm      DateTime @default(now())
+}

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Administrador</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f0f4f8; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); }
+        h1 { color: #0b1a33; margin-bottom: 20px; }
+        button { padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        button:hover { background: #c82333; }
+        .card { background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #4f46e5; }
+        .card p { margin: 4px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-user-tie"></i> Painel do Administrador</h1>
+        <p>Bem-vindo, <span id="nomeAdmin"></span>!</p>
+        
+        <div style="margin-top: 20px;">
+            <h3 style="margin-bottom: 12px;">Solicitações Pendentes</h3>
+            <div id="listaSolicitacoes"></div>
+        </div>
+
+        <button onclick="sair()" style="margin-top: 20px;">Sair</button>
+    </div>
+
+    <script>
+        const role = localStorage.getItem('role');
+        const nome = localStorage.getItem('nome');
+        const token = localStorage.getItem('token');
+
+        if (role !== 'ADMIN' || !token) {
+            window.location.href = '/';
+        } else {
+            document.getElementById('nomeAdmin').textContent = nome;
+            carregarSolicitacoes();
+        }
+
+        async function carregarSolicitacoes() {
+            try {
+                const response = await fetch('/admin/solicitacoes', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const dados = await response.json();
+                const lista = document.getElementById('listaSolicitacoes');
+                lista.innerHTML = '';
+
+                if (dados.length === 0) {
+                    lista.innerHTML = '<p style="color: #64748b;">Nenhuma solicitação pendente.</p>';
+                    return;
+                }
+
+                dados.forEach(sol => {
+                    const div = document.createElement('div');
+                    div.className = 'card';
+                    div.innerHTML = `
+                        <p><strong>Colaborador:</strong> ${sol.colaborador.nome}</p>
+                        <p><strong>Motivo:</strong> ${sol.motivo}</p>
+                        <p><strong>Nova Hora:</strong> ${new Date(sol.novaHora).toLocaleString('pt-BR')}</p>
+                        <button onclick="aprovar(${sol.id}, 'APROVADO')" style="background: #28a745; margin-top: 8px;">Aprovar</button>
+                        <button onclick="aprovar(${sol.id}, 'REJEITADO')" style="background: #dc3545;">Rejeitar</button>
+                    `;
+                    lista.appendChild(div);
+                });
+            } catch (error) {
+                console.error(error);
+                document.getElementById('listaSolicitacoes').innerHTML = '<p style="color: red;">Erro ao carregar solicitações.</p>';
+            }
+        }
+
+        async function aprovar(id, status) {
+            try {
+                const response = await fetch(`/admin/solicitacoes/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ status })
+                });
+                if (response.ok) {
+                    alert(`Solicitação ${status.toLowerCase()} com sucesso!`);
+                    carregarSolicitacoes();
+                }
+            } catch (error) {
+                alert('Erro ao processar solicitação');
+            }
+        }
+
+        function sair() {
+            localStorage.clear();
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

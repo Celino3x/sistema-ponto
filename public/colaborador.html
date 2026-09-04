@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel do Colaborador</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f0f4f8; display: flex; justify-content: center; padding: 20px; }
+        .app { max-width: 500px; width: 100%; background: white; border-radius: 24px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); }
+        h1 { font-size: 24px; color: #0b1a33; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .geo-box { background: #4f46e5; color: white; padding: 16px; border-radius: 16px; margin-bottom: 20px; }
+        .geo-box .coord { font-size: 18px; font-weight: 700; margin-top: 4px; }
+        .geo-box .status-gps { display: flex; justify-content: space-between; font-size: 14px; opacity: 0.9; }
+        .btn-ponto { width: 100%; padding: 16px; background: #0b1a33; color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .btn-ponto:hover { background: #1e2f4a; }
+        .btn-ponto:active { transform: scale(0.97); }
+        .btn-correcao { background: #d97706; color: white; padding: 12px; border: none; border-radius: 8px; margin-top: 12px; width: 100%; cursor: pointer; font-size: 15px; font-weight: 600; }
+        .btn-correcao:hover { background: #b45309; }
+        .btn-justificar { background: #16a34a; color: white; padding: 12px; border: none; border-radius: 8px; margin-top: 12px; width: 100%; cursor: pointer; font-size: 15px; font-weight: 600; }
+        .btn-justificar:hover { background: #15803d; }
+        .area-correcao { display: none; margin-top: 16px; background: #f8fafc; padding: 16px; border-radius: 8px; }
+        .area-justificativa { display: none; margin-top: 16px; background: #f0fdf4; padding: 16px; border-radius: 8px; border: 1px solid #bbf7d0; }
+        .area-correcao h4, .area-justificativa h4 { margin-bottom: 8px; color: #0b1a33; }
+        .area-correcao input, .area-correcao select, .area-justificativa input { width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-enviar { background: #4f46e5; color: white; width: 100%; padding: 10px; border: none; border-radius: 8px; cursor: pointer; }
+        .btn-enviar:hover { background: #4338ca; }
+        .historico { margin-top: 24px; }
+        .historico h3 { margin-bottom: 12px; color: #0b1a33; }
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #4f46e5; }
+        .item .info { flex: 1; }
+        .item .info .tipo { font-weight: 600; color: #0b1a33; }
+        .item .info .data { font-size: 12px; color: #64748b; }
+        .item .edit-btn { background: none; border: none; color: #4f46e5; font-size: 16px; cursor: pointer; padding: 8px; }
+        .item .edit-btn:hover { color: #4338ca; }
+        .toast { margin-top: 16px; padding: 12px; background: #0b1a33; color: white; border-radius: 12px; text-align: center; display: none; animation: fadeIn 0.3s; }
+        .toast.show { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .sair { margin-top: 24px; text-align: center; }
+        .sair button { background: none; border: none; color: #dc2626; font-weight: 600; cursor: pointer; font-size: 14px; }
+        .vazio { text-align: center; color: #94a3b8; padding: 20px; }
+        .badge-online { display: inline-block; background: #dcfce7; color: #16a34a; padding: 2px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <h1 id="titulo">
+            ⏱️ Ponto
+            <span class="badge-online"><i class="fas fa-circle" style="font-size: 8px; margin-right: 4px;"></i> Online</span>
+        </h1>
+
+        <div class="geo-box">
+            <div class="status-gps">
+                <span><i class="fas fa-satellite-dish"></i> GPS</span>
+                <span id="statusGPS"><i class="fas fa-check-circle"></i> Ativo</span>
+            </div>
+            <div class="coord" id="coordenadas">-23.5505 <small>lat</small> / -46.6333 <small>lng</small></div>
+            <div style="font-size:12px; opacity:0.7; margin-top:4px;"><i class="fas fa-map-pin"></i> Precisão: ±12m</div>
+        </div>
+
+        <button class="btn-ponto" id="btnRegistrar"><i class="fas fa-fingerprint"></i> Bater Ponto</button>
+        
+        <button class="btn-correcao" onclick="abrirCorrecao()"><i class="fas fa-edit"></i> Solicitar Correção</button>
+        
+        <div class="area-correcao" id="areaCorrecao">
+            <h4><i class="fas fa-paper-plane"></i> Enviar Solicitação de Correção</h4>
+            
+            <label style="font-size: 13px; font-weight: 600;">Ponto ID</label>
+            <input type="number" id="pontoId" readonly style="background: #e2e8f0; cursor: not-allowed;" />
+            
+            <label style="font-size: 13px; font-weight: 600;">Qual horário deseja corrigir?</label>
+            <select id="tipoCorrecao">
+                <option value="entrada">Entrada</option>
+                <option value="saida">Saída</option>
+            </select>
+            
+            <label style="font-size: 13px; font-weight: 600;">Motivo</label>
+            <input type="text" id="motivo" placeholder="Ex: Esqueci de bater a saída" />
+            
+            <label style="font-size: 13px; font-weight: 600;">Nova Hora</label>
+            <input type="datetime-local" id="novaHora" />
+            
+            <button class="btn-enviar" onclick="enviarCorrecao()"><i class="fas fa-save"></i> Enviar</button>
+        </div>
+
+        <button class="btn-justificar" onclick="abrirJustificativa()"><i class="fas fa-calendar-check"></i> Justificar / Abonar Falta</button>
+        
+        <div class="area-justificativa" id="areaJustificativa">
+            <h4><i class="fas fa-file-signature"></i> Justificar Falta ou Abono</h4>
+            
+            <label style="font-size: 13px; font-weight: 600;">Selecione o Dia</label>
+            <input type="date" id="dataFalta" />
+            
+            <label style="font-size: 13px; font-weight: 600;">Motivo</label>
+            <input type="text" id="motivoFalta" placeholder="Ex: Atestado médico, problema familiar..." />
+            
+            <label style="font-size: 13px; font-weight: 600;">Anexar Comprovante</label>
+            <input type="file" id="anexoFalta" accept="image/*,application/pdf" />
+            
+            <button class="btn-enviar" onclick="enviarJustificativa()"><i class="fas fa-save"></i> Enviar Justificativa</button>
+        </div>
+
+        <div id="ultimoRegistro" style="margin-top: 12px; font-size: 14px; color: #64748b; text-align: center;"></div>
+
+        <div class="historico">
+            <h3><i class="fas fa-history"></i> Histórico</h3>
+            <div id="listaHistorico"></div>
+        </div>
+
+        <div class="sair"><button onclick="sair()"><i class="fas fa-sign-out-alt"></i> Sair</button></div>
+        <div class="toast" id="toast"></div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const nome = localStorage.getItem('nome');
+
+        if (!token) { window.location.href = '/'; }
+        else { document.getElementById('titulo').innerHTML = `⏱️ Olá, ${nome.split(' ')[0]} <span class="badge-online">Online</span>`; }
+
+        let latAtual = -23.5505;
+        let lngAtual = -46.6333;
+
+        function obterLocalizacao() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    latAtual = pos.coords.latitude;
+                    lngAtual = pos.coords.longitude;
+                    document.getElementById('coordenadas').innerHTML = `${latAtual.toFixed(4)} <small>lat</small> / ${lngAtual.toFixed(4)} <small>lng</small>`;
+                    document.getElementById('statusGPS').innerHTML = '<i class="fas fa-check-circle"></i> Ativo';
+                }, () => { document.getElementById('statusGPS').innerHTML = '🟡 Simulado'; });
+            } else { document.getElementById('statusGPS').innerHTML = '🟡 Não suportado'; }
+        }
+        obterLocalizacao();
+
+        function mostrarToast(mensagem, cor = '#0b1a33') {
+            const toast = document.getElementById('toast');
+            toast.textContent = mensagem; toast.style.background = cor;
+            toast.className = 'toast show';
+            setTimeout(() => { toast.className = 'toast'; }, 3500);
+        }
+
+        document.getElementById('btnRegistrar').addEventListener('click', async () => {
+            try {
+                const resposta = await fetch('/api/ponto/registrar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ latitude: latAtual, longitude: lngAtual })
+                });
+                const resultado = await resposta.json();
+                if (resposta.ok) { mostrarToast(`✅ ${resultado.message}`, '#16a34a'); carregarHistorico(); }
+                else { mostrarToast(`❌ Erro: ${resultado.error}`, '#dc2626'); }
+            } catch { mostrarToast('❌ Erro ao conectar com o servidor', '#dc2626'); }
+        });
+
+        async function carregarHistorico() {
+            try {
+                const resposta = await fetch('/api/ponto/historico', { headers: { 'Authorization': `Bearer ${token}` } });
+                const dados = await resposta.json();
+                const lista = document.getElementById('listaHistorico');
+                lista.innerHTML = '';
+
+                if (dados.length === 0) { lista.innerHTML = '<div class="vazio">Nenhum registro encontrado</div>'; return; }
+
+                const ultimo = dados[dados.length - 1];
+                document.getElementById('ultimoRegistro').innerHTML = `Último: ${new Date(ultimo.entrada).toLocaleTimeString('pt-BR')}`;
+
+                const registrosReversos = [...dados].reverse();
+                registrosReversos.forEach((ponto) => {
+                    const div = document.createElement('div');
+                    div.className = 'item';
+                    div.innerHTML = `<div class="info">
+                        <div class="tipo">${new Date(ponto.entrada).toLocaleString('pt-BR')} - ${ponto.saida ? new Date(ponto.saida).toLocaleTimeString('pt-BR') : 'Em aberto'}</div>
+                        <div class="data">Horas trabalhadas: ${ponto.horasTrabalhadas ? ponto.horasTrabalhadas.toFixed(2) : 'Calculando...'}</div>
+                    </div>
+                    <button class="edit-btn" onclick="abrirEdicao(${ponto.id})"><i class="fas fa-pencil-alt"></i></button>`;
+                    lista.appendChild(div);
+                });
+            } catch { document.getElementById('listaHistorico').innerHTML = '<div class="vazio">Erro ao carregar</div>'; }
+        }
+        carregarHistorico();
+
+        // ===================== SOLICITAR CORREÇÃO =====================
+        async function abrirCorrecao() {
+            const area = document.getElementById('areaCorrecao');
+            area.style.display = area.style.display === 'none' ? 'block' : 'none';
+            if (area.style.display === 'block') {
+                document.getElementById('pontoId').value = '';
+            }
+        }
+
+        async function abrirEdicao(pontoId) {
+            const area = document.getElementById('areaCorrecao');
+            area.style.display = 'block';
+            document.getElementById('pontoId').value = pontoId;
+            area.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function enviarCorrecao() {
+            const pontoId = document.getElementById('pontoId').value;
+            const motivo = document.getElementById('motivo').value;
+            const novaHora = document.getElementById('novaHora').value;
+            const tipo = document.getElementById('tipoCorrecao').value;
+
+            if (!pontoId || !motivo || !novaHora) {
+                mostrarToast('⚠️ Preencha todos os campos!', '#d97706');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/ponto/solicitar-correcao', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({
+                        pontoId: Number(pontoId),
+                        motivo,
+                        novaHora: new Date(novaHora),
+                        tipo: tipo
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    mostrarToast(`✅ ${result.message}`, '#16a34a');
+                    document.getElementById('areaCorrecao').style.display = 'none';
+                    document.getElementById('pontoId').value = '';
+                    document.getElementById('motivo').value = '';
+                    document.getElementById('novaHora').value = '';
+                    document.getElementById('tipoCorrecao').value = 'entrada';
+                } else {
+                    mostrarToast(`❌ Erro: ${result.error}`, '#dc2626');
+                }
+            } catch (error) {
+                mostrarToast('❌ Erro ao conectar com o servidor', '#dc2626');
+            }
+        }
+
+        // ===================== JUSTIFICAR / ABONAR =====================
+        async function abrirJustificativa() {
+            const area = document.getElementById('areaJustificativa');
+            area.style.display = area.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function enviarJustificativa() {
+    const dataFalta = document.getElementById('dataFalta').value;
+    const motivo = document.getElementById('motivoFalta').value;
+    const anexoInput = document.getElementById('anexoFalta');
+    
+    // Verifica se o arquivo é muito grande (máximo 2MB)
+    if (anexoInput.files.length > 0) {
+        const file = anexoInput.files[0];
+        if (file.size > 2 * 1024 * 1024) { // 2MB em bytes
+            mostrarToast('⚠️ O arquivo deve ter no máximo 2MB', '#dc2626');
+            return;
+        }
+    }
+
+    let anexoUrl = null;
+    let nomeArquivo = 'Sem anexo';
+
+    if (anexoInput.files.length > 0) {
+        const file = anexoInput.files[0];
+        nomeArquivo = file.name;
+        const reader = new FileReader();
+        
+        const resultadoAnexo = await new Promise((resolve) => {
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(file);
+        });
+        anexoUrl = resultadoAnexo;
+    }
+
+    if (!dataFalta || !motivo) {
+        mostrarToast('⚠️ Preencha o dia e o motivo!', '#d97706');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/ponto/solicitar-justificativa', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({
+                dataFalta: new Date(dataFalta),
+                motivo,
+                anexoUrl,
+                nomeArquivo
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            mostrarToast(`✅ ${result.message}`, '#16a34a');
+            document.getElementById('areaJustificativa').style.display = 'none';
+            document.getElementById('dataFalta').value = '';
+            document.getElementById('motivoFalta').value = '';
+            document.getElementById('anexoFalta').value = '';
+        } else {
+            mostrarToast(`❌ Erro: ${result.error}`, '#dc2626');
+        }
+    } catch (error) {
+        mostrarToast('❌ Erro ao conectar com o servidor', '#dc2626');
+    }
+}
+
+        function sair() { localStorage.clear(); window.location.href = '/'; }
+    </script>
+</body>
+</html>
