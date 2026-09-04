@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// CAMINHO ABSOLUTO: Encontra a pasta 'public' na raiz do projeto (ao lado da pasta 'src' e 'api')
+// Serve os arquivos da pasta public
 const publicDir = path.join(__dirname, '..', 'public');
 app.use(express.static(publicDir));
 
@@ -20,7 +20,7 @@ app.use('/auth', authRoutes);
 app.use('/api/ponto', pontoRoutes);
 app.use('/admin', adminRoutes);
 
-// Rota raiz: Serve o index.html da pasta public
+// Rota raiz: Serve el index.html de la pasta public
 app.get('/', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });
