@@ -10,6 +10,7 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
+// Serve os arquivos da pasta public diretamente (na Vercel, isso funcionará se o build copiar)
 app.use(express.static('public'));
 
 // Rotas do sistema
