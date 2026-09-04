@@ -13,7 +13,7 @@
         .geo-box { background: #4f46e5; color: white; padding: 16px; border-radius: 16px; margin-bottom: 20px; }
         .geo-box .coord { font-size: 18px; font-weight: 700; margin-top: 4px; }
         .geo-box .status-gps { display: flex; justify-content: space-between; font-size: 14px; opacity: 0.9; }
-        .geo-box .endereco { font-size: 13px; opacity: 0.9; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 8px; }
+        .geo-box .endereco { font-size: 14px; font-weight: 600; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 8px; }
         .btn-ponto { width: 100%; padding: 16px; background: #0b1a33; color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .btn-ponto:hover { background: #1e2f4a; }
         .btn-ponto:active { transform: scale(0.97); }
@@ -154,13 +154,14 @@
                 const resposta = await fetch(url);
                 const dados = await resposta.json();
 
-                // Exibe as informações na tela
-                const nomeLocal = dados.locality || dados.city || 'Local não identificado';
-                const bairro = dados.locality || dados.principalSubdivision || '';
+                // Extrai as informações corretas
+                const bairro = dados.locality || dados.suburb || dados.city || 'Bairro não identificado';
                 const cidade = dados.city || dados.principalSubdivision || '';
+                const estado = dados.principalSubdivisionCode || '';
 
+                // Exibe na tela: Bairro, Cidade - Estado
                 document.getElementById('endereco').innerHTML = 
-                    `<i class="fas fa-map-pin"></i> <span>${nomeLocal}, ${bairro} - ${cidade}</span>`;
+                    `<i class="fas fa-map-pin"></i> <span>${bairro}, ${cidade} ${estado}</span>`;
             } catch (error) {
                 console.error(error);
                 document.getElementById('endereco').innerHTML = '<i class="fas fa-map-pin"></i> <span>Endereço não encontrado</span>';
@@ -236,7 +237,7 @@
         }
 
         async function enviarCorrecao() {
-            const puntoId = document.getElementById('pontoId').value;
+            const pontoId = document.getElementById('pontoId').value;
             const motivo = document.getElementById('motivo').value;
             const novaHora = document.getElementById('novaHora').value;
             const tipo = document.getElementById('tipoCorrecao').value;
