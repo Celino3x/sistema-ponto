@@ -17,7 +17,6 @@ app.use('/auth', authRoutes);
 app.use('/api/ponto', pontoRoutes);
 app.use('/admin', adminRoutes);
 
-// ROTA RAIZ (para evitar o 404)
 app.get('/', (req, res) => {
   res.send('🟢 Sistema de Ponto rodando na Vercel!');
 });
