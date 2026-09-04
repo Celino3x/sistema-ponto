@@ -5,6 +5,38 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Rota para CADASTRAR (register)
+export const register = async (req: Request, res: Response) => {
+  try {
+    const { nome, matricula, endereco, usuario, senha } = req.body;
+
+    // Verifica se usuário ou matrícula já existem
+    const usuarioExistente = await prisma.colaborador.findUnique({ where: { usuario } });
+    if (usuarioExistente) {
+      return res.status(400).json({ error: 'Usuário já cadastrado' });
+    }
+
+    // Criptografa a senha
+    const senhaHash = await bcrypt.hash(senha, 10);
+
+    const colaborador = await prisma.colaborador.create({
+      data: {
+        nome,
+        matricula,
+        endereco,
+        usuario,
+        senha: senhaHash,
+        role: 'COLABORADOR', // Por padrão, todos são colaboradores
+      },
+    });
+
+    return res.status(201).json({ message: 'Colaborador criado com sucesso!' });
+  } catch (error) {
+    return res.status(400).json({ error: 'Erro ao cadastrar. Verifique os dados enviados.' });
+  }
+};
+
+// Rota para LOGIN (login)
 export const login = async (req: Request, res: Response) => {
   try {
     const { usuario, senha } = req.body;
@@ -23,11 +55,10 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Senha incorreta' });
     }
 
-    // 3. Gera o token (AGORA COM A CHAVE SECRETA)
-    // Se a chave estiver undefined, o jwt quebra!
+    // 3. Gera o token
     const secret = process.env.JWT_SECRET;
     if (!secret) {
-      console.error('ERRO CRÍTICO: JWT_SECRET não encontrado no .env ou na Vercel!');
+      console.error('ERRO CRÍTICO: JWT_SECRET não encontrado!');
       return res.status(500).json({ error: 'Erro interno no login' });
     }
 
