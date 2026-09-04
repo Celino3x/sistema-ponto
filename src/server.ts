@@ -7,10 +7,8 @@ import adminRoutes from './routes/adminRoutes';
 const app = express();
 
 app.use(cors());
-// AUMENTA O LIMITE DE TAMANHO DO JSON PARA 50MB (para receber anexos em Base64)
-app.use(express.json({ limit: '50mb' })); 
+app.use(express.json({ limit: '50mb' }));
 
-// SERVE OS ARQUIVOS HTML DA PASTA PUBLIC
 app.use(express.static('public'));
 
 // Rotas do sistema
@@ -18,5 +16,9 @@ app.use('/auth', authRoutes);
 app.use('/api/ponto', pontoRoutes);
 app.use('/admin', adminRoutes);
 
-// EXPORTA O APP PARA A VERCEL (EM VEZ DE app.listen)
+// ROTA RAIZ (para evitar o 404)
+app.get('/', (req, res) => {
+  res.send('🟢 Sistema de Ponto rodando na Vercel!');
+});
+
 export default app;
