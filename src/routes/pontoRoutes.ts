@@ -6,7 +6,7 @@ const router = Router();
 
 router.post('/registrar', authMiddleware, registrarPonto);
 router.post('/solicitar-correcao', authMiddleware, solicitarCorrecao);
-router.post('/solicitar-justificativa', authMiddleware, solicitarJustificativa); // NOVA ROTA
+router.post('/solicitar-justificativa', authMiddleware, solicitarJustificativa);
 router.get('/historico', authMiddleware, listarHistorico);
 
 export default router;
