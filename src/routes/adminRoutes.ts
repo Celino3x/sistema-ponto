@@ -5,7 +5,9 @@ import {
   listarSolicitacoes, 
   relatorioHoras, 
   aprovarSolicitacao, 
-  aprovarTodas 
+  aprovarTodas,
+  atualizarColaborador,
+  excluirColaborador
 } from '../controllers/adminController';
 import { authMiddleware, isAdmin } from '../middlewares/authMiddleware';
 
@@ -16,6 +18,8 @@ router.use(authMiddleware, isAdmin);
 // Rotas de Colaboradores
 router.post('/colaboradores', criarColaborador);
 router.get('/colaboradores', listarColaboradores);
+router.put('/colaboradores/:id', atualizarColaborador);
+router.delete('/colaboradores/:id', excluirColaborador);
 
 // Rotas de Relatórios
 router.get('/relatorio', relatorioHoras);
