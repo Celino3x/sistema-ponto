@@ -18,5 +18,4 @@ app.use('/auth', authRoutes);
 app.use('/api/ponto', pontoRoutes);
 app.use('/admin', adminRoutes);
 
-// Exporta o app para a pasta api
 export default app;
