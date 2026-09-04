@@ -154,12 +154,19 @@
                 const resposta = await fetch(url);
                 const dados = await resposta.json();
 
-                // Extrai as informações corretas
-                const bairro = dados.locality || dados.suburb || dados.city || 'Bairro não identificado';
-                const cidade = dados.city || dados.principalSubdivision || '';
-                const estado = dados.principalSubdivisionCode || '';
+                // EXTRAI O BAIRRO MAIS PRECISO (prioridade: suburb > locality > city)
+                let bairro = dados.suburb || dados.locality || dados.city || 'Bairro não identificado';
 
-                // Exibe na tela: Bairro, Cidade - Estado
+                // Extrai cidade e estado (corta o texto gigante da região metropolitana)
+                let cidade = dados.city || dados.principalSubdivision || '';
+                let estado = dados.principalSubdivisionCode ? dados.principalSubdivisionCode.split('-')[1] : '';
+
+                // Evita que "cidade" fique gigante (ex: Região Metropolitana)
+                if (cidade.includes('Região')) {
+                    cidade = dados.principalSubdivision || '';
+                }
+
+                // Exibe: Bairro, Cidade - Estado
                 document.getElementById('endereco').innerHTML = 
                     `<i class="fas fa-map-pin"></i> <span>${bairro}, ${cidade} ${estado}</span>`;
             } catch (error) {
