@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // ===================== CRIAR COLABORADOR =====================
 export const criarColaborador = async (req: Request, res: Response) => {
   try {
-    const { nome, matricula, endereco, usuario, senha } = req.body;
+    const { nome, matricula, endereco, usuario, senha, funcao, area } = req.body;
     const senhaHash = await bcrypt.hash(senha, 10);
 
     const colaborador = await prisma.colaborador.create({
@@ -18,6 +18,8 @@ export const criarColaborador = async (req: Request, res: Response) => {
         usuario,
         senha: senhaHash,
         role: 'COLABORADOR',
+        funcao,
+        area,
       },
     });
 
@@ -31,7 +33,7 @@ export const criarColaborador = async (req: Request, res: Response) => {
 export const listarColaboradores = async (req: Request, res: Response) => {
   try {
     const colaboradores = await prisma.colaborador.findMany({
-      select: { id: true, nome: true, matricula: true },
+      select: { id: true, nome: true, matricula: true, funcao: true, area: true, usuario: true },
     });
     return res.json(colaboradores);
   } catch (error) {
@@ -66,7 +68,7 @@ export const relatorioHoras = async (req: Request, res: Response) => {
           lte: new Date(dataFim as string || '2030-12-31'),
         },
       },
-      include: { colaborador: { select: { nome: true } } },
+      include: { colaborador: { select: { nome: true, matricula: true, funcao: true, area: true } } },
     });
 
     const totalHoras = pontos.reduce((acc, ponto) => acc + (ponto.horasTrabalhadas || 0), 0);
@@ -74,6 +76,41 @@ export const relatorioHoras = async (req: Request, res: Response) => {
     return res.json({ totalHoras, pontos });
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao gerar relatório' });
+  }
+};
+
+// ===================== ATUALIZAR COLABORADOR =====================
+export const atualizarColaborador = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { nome, matricula, endereco, usuario, senha, funcao, area, role } = req.body;
+
+    const dados: any = { nome, matricula, endereco, usuario, funcao, area, role };
+    if (senha) {
+      dados.senha = await bcrypt.hash(senha, 10);
+    }
+
+    const colaborador = await prisma.colaborador.update({
+      where: { id: Number(id) },
+      data: dados,
+    });
+
+    return res.json({ message: 'Colaborador atualizado!', colaborador });
+  } catch (error) {
+    return res.status(400).json({ error: 'Erro ao atualizar colaborador' });
+  }
+};
+
+// ===================== EXCLUIR COLABORADOR =====================
+export const excluirColaborador = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.colaborador.delete({
+      where: { id: Number(id) },
+    });
+    return res.json({ message: 'Colaborador excluído!' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Erro ao excluir colaborador' });
   }
 };
 
@@ -126,60 +163,5 @@ export const aprovarTodas = async (req: Request, res: Response) => {
     return res.json({ message: `${solicitacoes.length} solicitações ${status.toLowerCase()}!` });
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao aprovar em lote' });
-  }
-};
-// ===================== ATUALIZAR COLABORADOR =====================
-export const atualizarColaborador = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { nome, matricula, endereco, usuario, senha, role } = req.body;
-
-    const dados: any = { nome, matricula, endereco, usuario, role };
-    if (senha) {
-      dados.senha = await bcrypt.hash(senha, 10);
-    }
-
-    const colaborador = await prisma.colaborador.update({
-      where: { id: Number(id) },
-      data: dados,
-    });
-
-    return res.json({ message: 'Colaborador atualizado!', colaborador });
-  } catch (error) {
-    return res.status(400).json({ error: 'Erro ao atualizar colaborador' });
-  }
-};
-
-// ===================== EXCLUIR COLABORADOR =====================
-export const excluirColaborador = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    await prisma.colaborador.delete({
-      where: { id: Number(id) },
-    });
-    return res.json({ message: 'Colaborador excluído!' });
-  } catch (error) {
-    return res.status(500).json({ error: 'Erro ao excluir colaborador' });
-  }
-};
-// ===================== ATUALIZAR COLABORADOR (COM MODAL) =====================
-export const atualizarColaborador = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { nome, matricula, endereco, usuario, senha, funcao, area, role } = req.body;
-
-    const dados: any = { nome, matricula, endereco, usuario, funcao, area, role };
-    if (senha) {
-      dados.senha = await bcrypt.hash(senha, 10);
-    }
-
-    const colaborador = await prisma.colaborador.update({
-      where: { id: Number(id) },
-      data: dados,
-    });
-
-    return res.json({ message: 'Colaborador atualizado!', colaborador });
-  } catch (error) {
-    return res.status(400).json({ error: 'Erro ao atualizar colaborador' });
   }
 };
