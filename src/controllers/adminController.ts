@@ -101,15 +101,35 @@ export const atualizarColaborador = async (req: Request, res: Response) => {
   }
 };
 
-// ===================== EXCLUIR COLABORADOR =====================
+// ===================== EXCLUIR COLABORADOR (COM LIMPEZA) =====================
 export const excluirColaborador = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    await prisma.colaborador.delete({
-      where: { id: Number(id) },
+    const colaboradorId = Number(id);
+
+    // 1. Exclui os pontos do colaborador
+    await prisma.ponto.deleteMany({
+      where: { colaboradorId },
     });
+
+    // 2. Exclui as justificativas do colaborador
+    await prisma.justificativaAbono.deleteMany({
+      where: { colaboradorId },
+    });
+
+    // 3. Exclui as solicitações de correção do colaborador
+    await prisma.solicitacaoCorrecao.deleteMany({
+      where: { colaboradorId },
+    });
+
+    // 4. Agora sim, exclui o colaborador
+    await prisma.colaborador.delete({
+      where: { id: colaboradorId },
+    });
+
     return res.json({ message: 'Colaborador excluído!' });
   } catch (error) {
+    console.error('Erro ao excluir colaborador:', error);
     return res.status(500).json({ error: 'Erro ao excluir colaborador' });
   }
 };
