@@ -10,8 +10,8 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// SERVE OS ARQUIVOS HTML DA PASTA PUBLIC
-app.use(express.static('public'));
+// CORRIGIDO: Serve the 'public' folder inside 'dist' where the copy command placed it
+app.use(express.static('dist/public'));
 
 // Rotas do sistema
 app.use('/auth', authRoutes);
