@@ -5,7 +5,6 @@ import pontoRoutes from './routes/pontoRoutes';
 import adminRoutes from './routes/adminRoutes';
 
 const app = express();
-const PORT = 3000;
 
 app.use(cors());
 // AUMENTA O LIMITE DE TAMANHO DO JSON PARA 50MB (para receber anexos em Base64)
@@ -19,6 +18,5 @@ app.use('/auth', authRoutes);
 app.use('/api/ponto', pontoRoutes);
 app.use('/admin', adminRoutes);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando em http://localhost:3000`);
-});
+// EXPORTA O APP PARA A VERCEL (EM VEZ DE app.listen)
+export default app;
