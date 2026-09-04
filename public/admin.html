@@ -8,18 +8,18 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: #f0f4f8; display: flex; justify-content: center; padding: 20px; }
-        .app { max-width: 600px; width: 100%; background: white; border-radius: 24px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); }
+        .app { max-width: 800px; width: 100%; background: white; border-radius: 24px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); }
         h1 { font-size: 24px; color: #0b1a33; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-        .info-box { background: #4f46e5; color: white; padding: 16px; border-radius: 16px; margin-bottom: 20px; }
-        .info-box p { font-size: 14px; opacity: 0.9; }
-        .info-box h2 { font-size: 20px; }
         .btn { width: 100%; padding: 16px; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.2s; margin-top: 12px; }
         .btn:hover { opacity: 0.8; }
+        .btn-criar { background: #16a34a; }
+        .btn-relatorio { background: #4f46e5; }
         .btn-acoes { background: #0b1a33; }
-        .btn-relatorio { background: #16a34a; }
         .btn-sair { background: #dc2626; margin-top: 24px; }
-        .historico { margin-top: 24px; }
-        .historico h3 { margin-bottom: 12px; color: #0b1a33; }
+        .section { margin-top: 24px; }
+        .section h3 { margin-bottom: 12px; color: #0b1a33; }
+        .form-group { margin-bottom: 10px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; }
         .card { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 12px; margin-bottom: 8px; border-left: 4px solid #4f46e5; }
         .card .info { flex: 1; }
         .card .info .tipo { font-weight: 600; color: #0b1a33; }
@@ -27,6 +27,7 @@
         .card .aprovacao { display: flex; gap: 8px; margin-top: 8px; }
         .btn-aprovar { background: #16a34a; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
         .btn-rejeitar { background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+        .btn-aprovar-todas { background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 12px; }
         .vazio { text-align: center; color: #94a3b8; padding: 20px; }
     </style>
 </head>
@@ -34,18 +35,48 @@
     <div class="app">
         <h1><i class="fas fa-user-tie"></i> Painel do Administrador</h1>
 
-        <div class="info-box">
-            <p>Bem-vindo, <strong id="nomeAdmin"></strong>!</p>
-            <h2 id="totalPendentes">0</h2>
-            <p>Solicitações pendentes</p>
+        <!-- ===================== CRIAR COLABORADOR ===================== -->
+        <div class="section">
+            <h3><i class="fas fa-user-plus"></i> Criar Colaborador</h3>
+            <div class="form-group">
+                <input type="text" id="nomeColaborador" placeholder="Nome completo">
+            </div>
+            <div class="form-group">
+                <input type="text" id="matriculaColaborador" placeholder="Matrícula">
+            </div>
+            <div class="form-group">
+                <input type="text" id="enderecoColaborador" placeholder="Endereço">
+            </div>
+            <div class="form-group">
+                <input type="text" id="usuarioColaborador" placeholder="Usuário (login)">
+            </div>
+            <div class="form-group">
+                <input type="password" id="senhaColaborador" placeholder="Senha">
+            </div>
+            <button class="btn btn-criar" onclick="criarColaborador()"><i class="fas fa-save"></i> Criar Colaborador</button>
         </div>
 
-        <!-- Gerar Relatório -->
-        <button class="btn btn-relatorio" onclick="gerarRelatorio()"><i class="fas fa-file-alt"></i> Gerar Relatório</button>
+        <!-- ===================== RELATÓRIO ===================== -->
+        <div class="section">
+            <h3><i class="fas fa-file-alt"></i> Relatório de Horas</h3>
+            <div class="form-group">
+                <select id="colaboradorRelatorio">
+                    <option value="">Todos os Colaboradores</option>
+                    <!-- Opções preenchidas via JavaScript -->
+                </select>
+            </div>
+            <div class="form-group">
+                <input type="date" id="dataInicioRelatorio">
+                <input type="date" id="dataFimRelatorio" style="margin-top: 8px;">
+            </div>
+            <button class="btn btn-relatorio" onclick="gerarRelatorio()"><i class="fas fa-chart-line"></i> Gerar Relatório</button>
+        </div>
 
-        <!-- Aprovações -->
-        <div class="historico">
+        <!-- ===================== SOLICITAÇÕES PENDENTES ===================== -->
+        <div class="section">
             <h3><i class="fas fa-inbox"></i> Solicitações Pendentes</h3>
+            <button class="btn-aprovar-todas" onclick="aprovarTodas('APROVADO')"><i class="fas fa-check-double"></i> Aprovar Todas</button>
+            <button class="btn-aprovar-todas" style="background: #dc2626;" onclick="aprovarTodas('REJEITADO')"><i class="fas fa-times"></i> Rejeitar Todas</button>
             <div id="listaSolicitacoes"></div>
         </div>
 
@@ -58,15 +89,94 @@
         const nome = localStorage.getItem('nome');
         const role = localStorage.getItem('role');
 
-        // Verifica se é admin
         if (!token || role !== 'ADMIN') {
             window.location.href = '/';
         } else {
-            document.getElementById('nomeAdmin').textContent = nome;
+            document.querySelector('h1').innerHTML = `<i class="fas fa-user-tie"></i> Painel do Administrador - ${nome}`;
             carregarSolicitacoes();
+            carregarColaboradores();
         }
 
-        // ===================== APROVAR/REJEITAR =====================
+        // ===================== CRIAR COLABORADOR =====================
+        async function criarColaborador() {
+            const dados = {
+                nome: document.getElementById('nomeColaborador').value,
+                matricula: document.getElementById('matriculaColaborador').value,
+                endereco: document.getElementById('enderecoColaborador').value,
+                usuario: document.getElementById('usuarioColaborador').value,
+                senha: document.getElementById('senhaColaborador').value
+            };
+
+            if (!dados.nome || !dados.matricula || !dados.usuario || !dados.senha) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/colaboradores', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(dados)
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(`✅ ${result.message}`);
+                    document.getElementById('nomeColaborador').value = '';
+                    document.getElementById('matriculaColaborador').value = '';
+                    document.getElementById('enderecoColaborador').value = '';
+                    document.getElementById('usuarioColaborador').value = '';
+                    document.getElementById('senhaColaborador').value = '';
+                } else {
+                    alert(`❌ Erro: ${result.error}`);
+                }
+            } catch (error) {
+                alert('Erro ao conectar com o servidor');
+            }
+        }
+
+        // ===================== LISTAR COLABORADORES =====================
+        async function carregarColaboradores() {
+            try {
+                const response = await fetch('/admin/colaboradores', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const dados = await response.json();
+                const select = document.getElementById('colaboradorRelatorio');
+                dados.forEach(col => {
+                    const option = document.createElement('option');
+                    option.value = col.id;
+                    option.textContent = col.nome;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // ===================== GERAR RELATÓRIO =====================
+        async function gerarRelatorio() {
+            try {
+                const colaboradorId = document.getElementById('colaboradorRelatorio').value;
+                const dataInicio = document.getElementById('dataInicioRelatorio').value;
+                const dataFim = document.getElementById('dataFimRelatorio').value;
+
+                const response = await fetch(`/admin/relatorio?colaboradorId=${colaboradorId}&dataInicio=${dataInicio}&dataFim=${dataFim}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const dados = await response.json();
+
+                if (dados.totalHoras !== undefined) {
+                    alert(`📊 Total de horas trabalhadas: ${dados.totalHoras.toFixed(2)} horas`);
+                    console.log(dados.pontos);
+                } else {
+                    alert('Nenhum dado encontrado');
+                }
+            } catch (error) {
+                alert('Erro ao gerar relatório');
+            }
+        }
+
+        // ===================== SOLICITAÇÕES =====================
         async function carregarSolicitacoes() {
             try {
                 const response = await fetch('/admin/solicitacoes', {
@@ -74,13 +184,10 @@
                 });
                 const dados = await response.json();
 
-                document.getElementById('totalPendentes').textContent = dados.length;
-
-                const lista = document.getElementById('listaSolicitacoes');
-                lista.innerHTML = '';
+                document.getElementById('listaSolicitacoes').innerHTML = '';
 
                 if (dados.length === 0) {
-                    lista.innerHTML = '<div class="vazio">Nenhuma solicitação pendente.</div>';
+                    document.getElementById('listaSolicitacoes').innerHTML = '<div class="vazio">Nenhuma solicitação pendente.</div>';
                     return;
                 }
 
@@ -110,10 +217,7 @@
             try {
                 const response = await fetch(`/admin/solicitacoes/${id}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ status })
                 });
                 if (response.ok) {
@@ -125,21 +229,22 @@
             }
         }
 
-        // ===================== RELATÓRIO =====================
-        async function gerarRelatorio() {
+        async function aprovarTodas(status) {
             try {
-                const response = await fetch('/admin/relatorio', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                const response = await fetch('/admin/solicitacoes/aprovar-todas', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ status })
                 });
-                const dados = await response.json();
-
-                if (dados.totalHoras !== undefined) {
-                    alert(`Total de horas trabalhadas: ${dados.totalHoras.toFixed(2)} horas`);
+                const result = await response.json();
+                if (response.ok) {
+                    alert(`✅ ${result.message}`);
+                    carregarSolicitacoes();
                 } else {
-                    alert('Nenhum dado encontrado');
+                    alert(`❌ Erro: ${result.error}`);
                 }
             } catch (error) {
-                alert('Erro ao gerar relatório');
+                alert('Erro ao processar solicitações');
             }
         }
 
