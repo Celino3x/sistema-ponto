@@ -1,13 +1,22 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// ===================== CRIAR COLABORADOR =====================
-export const criarColaborador = async (req: Request, res: Response) => {
+// ===================== CADASTRAR (REGISTER) =====================
+export const register = async (req: Request, res: Response) => {
   try {
     const { nome, matricula, endereco, usuario, senha } = req.body;
+
+    // Verifica se usuário ou matrícula já existem
+    const usuarioExistente = await prisma.colaborador.findUnique({ where: { usuario } });
+    if (usuarioExistente) {
+      return res.status(400).json({ error: 'Usuário já cadastrado' });
+    }
+
+    // Criptografa a senha
     const senhaHash = await bcrypt.hash(senha, 10);
 
     const colaborador = await prisma.colaborador.create({
@@ -21,116 +30,47 @@ export const criarColaborador = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(201).json({ message: 'Colaborador criado!', colaborador });
+    return res.status(201).json({ message: 'Colaborador criado com sucesso!' });
   } catch (error) {
-    return res.status(400).json({ error: 'Erro ao criar colaborador. Verifique se o usuário ou matrícula já existem.' });
+    return res.status(400).json({ error: 'Erro ao cadastrar. Verifique os dados enviados.' });
   }
 };
 
-// ===================== LISTAR TODOS OS COLABORADORES =====================
-export const listarColaboradores = async (req: Request, res: Response) => {
+// ===================== LOGIN =====================
+export const login = async (req: Request, res: Response) => {
   try {
-    const colaboradores = await prisma.colaborador.findMany({
-      select: { id: true, nome: true, matricula: true },
-    });
-    return res.json(colaboradores);
-  } catch (error) {
-    return res.status(500).json({ error: 'Erro ao listar colaboradores' });
-  }
-};
+    const { usuario, senha } = req.body;
 
-// ===================== LISTAR SOLICITAÇÕES PENDENTES =====================
-export const listarSolicitacoes = async (req: Request, res: Response) => {
-  try {
-    const solicitacoes = await prisma.solicitacaoCorrecao.findMany({
-      where: { status: 'PENDENTE' },
-      include: { colaborador: true },
-    });
-    return res.json(solicitacoes);
-  } catch (error) {
-    return res.status(500).json({ error: 'Erro ao listar solicitações' });
-  }
-};
+    // 1. Verifica se o usuário existe
+    const colaborador = await prisma.colaborador.findUnique({ where: { usuario } });
 
-// ===================== RELATÓRIO (INDIVIDUAL OU GERAL) =====================
-export const relatorioHoras = async (req: Request, res: Response) => {
-  try {
-    const { colaboradorId, dataInicio, dataFim } = req.query;
-    const colaboradorIdNum = colaboradorId ? Number(colaboradorId) : undefined;
-
-    // Obter todos os pontos (individual ou de todos)
-    const pontos = await prisma.ponto.findMany({
-      where: {
-        ...(colaboradorIdNum ? { colaboradorId: colaboradorIdNum } : {}),
-        entrada: {
-          gte: new Date(dataInicio as string || '2024-01-01'),
-          lte: new Date(dataFim as string || '2030-12-31'),
-        },
-      },
-      include: { colaborador: { select: { nome: true } } },
-    });
-
-    // Calcular horas totais
-    const totalHoras = pontos.reduce((acc, ponto) => acc + (ponto.horasTrabalhadas || 0), 0);
-
-    // Retornar os dados do relatório
-    return res.json({ totalHoras, pontos });
-  } catch (error) {
-    return res.status(500).json({ error: 'Erro ao gerar relatório' });
-  }
-};
-
-// ===================== APROVAR INDIVIDUAL =====================
-export const aprovarSolicitacao = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    
-    const solicitacao = await prisma.solicitacaoCorrecao.update({
-      where: { id: Number(id) },
-      data: { status },
-    });
-
-    // Se aprovado, atualizar o ponto
-    if (status === 'APROVADO') {
-      await prisma.ponto.update({
-        where: { id: solicitacao.pontoId! },
-        data: { entrada: solicitacao.novaHora },
-      });
+    if (!colaborador) {
+      return res.status(401).json({ error: 'Usuário não encontrado' });
     }
 
-    return res.json(solicitacao);
-  } catch (error) {
-    return res.status(500).json({ error: 'Erro ao aprovar solicitação' });
-  }
-};
+    // 2. Verifica a senha
+    const senhaValida = await bcrypt.compare(senha, colaborador.senha);
 
-// ===================== APROVAR EM LOTE (TODAS) =====================
-export const aprovarTodas = async (req: Request, res: Response) => {
-  try {
-    const { status } = req.body; // "APROVADO" ou "REJEITADO"
-    const solicitacoes = await prisma.solicitacaoCorrecao.findMany({
-      where: { status: 'PENDENTE' },
-    });
-
-    // Atualizar status das solicitações
-    for (const sol of solicitacoes) {
-      await prisma.solicitacaoCorrecao.update({
-        where: { id: sol.id },
-        data: { status },
-      });
-
-      // Se aprovado, atualizar o ponto
-      if (status === 'APROVADO') {
-        await prisma.ponto.update({
-          where: { id: sol.pontoId! },
-          data: { entrada: sol.novaHora },
-        });
-      }
+    if (!senhaValida) {
+      return res.status(401).json({ error: 'Senha incorreta' });
     }
 
-    return res.json({ message: `${solicitacoes.length} solicitações ${status.toLowerCase()}!` });
+    // 3. Gera o token
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error('ERRO CRÍTICO: JWT_SECRET não encontrado!');
+      return res.status(500).json({ error: 'Erro interno no login' });
+    }
+
+    const token = jwt.sign(
+      { id: colaborador.id, role: colaborador.role },
+      secret,
+      { expiresIn: '8h' }
+    );
+
+    return res.json({ token, nome: colaborador.nome, role: colaborador.role, id: colaborador.id });
   } catch (error) {
-    return res.status(500).json({ error: 'Erro ao aprovar em lote' });
+    console.error('Erro no login:', error);
+    return res.status(500).json({ error: 'Erro interno no login' });
   }
 };
