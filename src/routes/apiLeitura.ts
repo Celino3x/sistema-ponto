@@ -6,32 +6,21 @@ const router = Router();
 
 // ===================== VERIFICAR AUTH BEARER =====================
 function verificarApiKey(req: any, res: any, next: any) {
-  // Pega o Header "Authorization"
   const authHeader = req.headers['authorization'];
-  
-  // Formato esperado: "Bearer <token>"
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(403).json({ error: 'Acesso negado: Token ausente ou formato inválido' });
   }
-
-  // Extrai o token (remove o "Bearer ")
   const token = authHeader.split(' ')[1];
-
-  // Compara com o valor da variável de ambiente
   if (token !== process.env.SE_READ_API_KEY) {
     return res.status(403).json({ error: 'Acesso negado: API Key inválida' });
   }
   next();
 }
 
-// ===================== CONSULTAR COLABORADORES =====================
+// ===================== CONSULTAR COLABORADORES (TODOS) =====================
 router.get('/colaboradores', verificarApiKey, async (req: any, res: any) => {
   try {
-    const primeiroColaborador = await prisma.colaborador.findFirst({
-      where: {
-        funcao: { not: null },
-        area: { not: null }
-      },
+    const colaboradores = await prisma.colaborador.findMany({
       select: {
         id: true,
         nome: true,
@@ -42,8 +31,8 @@ router.get('/colaboradores', verificarApiKey, async (req: any, res: any) => {
       }
     });
 
-    // Retorna como objeto (para o SoftExpert "aprender")
-    return res.json({ colaboradores: primeiroColaborador });
+    // Retorna TODOS os colaboradores (array completo)
+    return res.json({ colaboradores: colaboradores });
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao consultar colaboradores' });
   }
