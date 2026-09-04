@@ -5,7 +5,8 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "moduleResolution": "node"
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "api/**/*.ts"],
   "exclude": ["node_modules"]
