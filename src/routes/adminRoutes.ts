@@ -3,6 +3,8 @@ import {
   criarColaborador, 
   listarColaboradores, 
   listarSolicitacoes, 
+  listarJustificativas,
+  aprovarJustificativa,
   relatorioHoras, 
   aprovarSolicitacao, 
   aprovarTodas,
@@ -24,9 +26,13 @@ router.delete('/colaboradores/:id', excluirColaborador);
 // Rotas de Relatórios
 router.get('/relatorio', relatorioHoras);
 
-// Rotas de Solicitações
+// Rotas de Solicitações (Correção de Ponto)
 router.get('/solicitacoes', listarSolicitacoes);
 router.put('/solicitacoes/:id', aprovarSolicitacao);
 router.put('/solicitacoes/aprovar-todas', aprovarTodas);
+
+// Rotas de Justificativas (Abono de Falta)
+router.get('/justificativas', listarJustificativas);
+router.put('/justificativas/:id', aprovarJustificativa);
 
 export default router;

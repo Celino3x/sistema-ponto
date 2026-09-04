@@ -80,6 +80,7 @@
         <div class="nav-item active" onclick="mudarSecao('colaboradores')"><i class="fas fa-users"></i> Colaboradores</div>
         <div class="nav-item" onclick="mudarSecao('relatorios')"><i class="fas fa-chart-line"></i> Relatórios</div>
         <div class="nav-item" onclick="mudarSecao('solicitacoes')"><i class="fas fa-inbox"></i> Solicitações</div>
+        <div class="nav-item" onclick="mudarSecao('justificativas')"><i class="fas fa-file-signature"></i> Justificativas</div>
         <div class="sair" onclick="sair()"><i class="fas fa-sign-out-alt"></i> Sair</div>
     </div>
 
@@ -217,6 +218,15 @@
             </div>
             <div id="listaSolicitacoes"></div>
         </div>
+
+        <!-- ===================== SEÇÃO: JUSTIFICATIVAS ===================== -->
+        <div class="section" id="secao-justificativas">
+            <div style="margin-bottom: 16px;">
+                <button class="btn btn-success" style="margin-right: 8px;" onclick="aprovarTodasJustificativas('APROVADO')"><i class="fas fa-check-double"></i> Aprovar Todas</button>
+                <button class="btn btn-danger" onclick="aprovarTodasJustificativas('REJEITADO')"><i class="fas fa-times"></i> Rejeitar Todas</button>
+            </div>
+            <div id="listaJustificativas"></div>
+        </div>
     </div>
 
     <!-- MODAL DE EDICAO -->
@@ -269,9 +279,9 @@
         // ===================== NAVEGAÇÃO =====================
         async function mudarSecao(secao) {
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            document.querySelector(`.nav-item:nth-child(${secao === 'colaboradores' ? 2 : secao === 'relatorios' ? 3 : 4})`).classList.add('active');
+            document.querySelector(`.nav-item:nth-child(${secao === 'colaboradores' ? 2 : secao === 'relatorios' ? 3 : secao === 'solicitacoes' ? 4 : 5})`).classList.add('active');
             
-            document.getElementById('tituloPainel').textContent = secao === 'colaboradores' ? 'Colaboradores' : secao === 'relatorios' ? 'Relatórios' : 'Solicitações';
+            document.getElementById('tituloPainel').textContent = secao === 'colaboradores' ? 'Colaboradores' : secao === 'relatorios' ? 'Relatórios' : secao === 'solicitacoes' ? 'Solicitações' : 'Justificativas';
             document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
             document.getElementById(`secao-${secao}`).classList.add('active');
 
@@ -280,6 +290,9 @@
             }
             if (secao === 'solicitacoes') {
                 await carregarSolicitacoes();
+            }
+            if (secao === 'justificativas') {
+                await carregarJustificativas();
             }
         }
 
@@ -447,7 +460,6 @@
 
         // ===================== EXCLUIR COLABORADOR =====================
         async function excluirColaborador(id) {
-            // Modal de confirmação moderno (em vez de prompt)
             if (!confirm('Tem certeza que deseja excluir este colaborador?')) return;
 
             try {
@@ -614,6 +626,75 @@
                 }
             } catch (error) {
                 alert('Erro ao processar solicitações');
+            }
+        }
+
+        // ===================== JUSTIFICATIVAS =====================
+        async function carregarJustificativas() {
+            try {
+                const response = await fetch('/admin/justificativas', { headers: { 'Authorization': `Bearer ${token}` } });
+                const dados = await response.json();
+
+                document.getElementById('listaJustificativas').innerHTML = '';
+
+                if (dados.length === 0) {
+                    document.getElementById('listaJustificativas').innerHTML = '<div style="color: #64748b;">Nenhuma justificativa pendente.</div>';
+                    return;
+                }
+
+                dados.forEach(just => {
+                    const div = document.createElement('div');
+                    div.className = 'approval-card';
+                    div.innerHTML = `
+                        <div class="info">
+                            <strong>${just.colaborador.nome}</strong>
+                            <span>${just.motivo}</span>
+                            <span>Data: ${new Date(just.dataFalta).toLocaleDateString('pt-BR')}</span>
+                            ${just.anexoUrl ? `<br><a href="${just.anexoUrl}" target="_blank" style="color: #4f46e5; font-weight: 600;">Ver Anexo</a>` : ''}
+                        </div>
+                        <div class="acoes">
+                            <button class="btn-aprovar" onclick="aprovarJustificativa(${just.id}, 'APROVADO')">Aprovar</button>
+                            <button class="btn-rejeitar" onclick="aprovarJustificativa(${just.id}, 'REJEITADO')">Rejeitar</button>
+                        </div>
+                    `;
+                    document.getElementById('listaJustificativas').appendChild(div);
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function aprovarJustificativa(id, status) {
+            try {
+                const response = await fetch(`/admin/justificativas/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ status })
+                });
+                if (response.ok) {
+                    carregarJustificativas();
+                }
+            } catch (error) {
+                alert('Erro ao processar justificativa');
+            }
+        }
+
+        async function aprovarTodasJustificativas(status) {
+            try {
+                const response = await fetch('/admin/justificativas/aprovar-todas', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ status })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(`✅ ${result.message}`);
+                    carregarJustificativas();
+                } else {
+                    alert(`❌ Erro: ${result.error}`);
+                }
+            } catch (error) {
+                alert('Erro ao processar justificativas');
             }
         }
 

@@ -54,6 +54,36 @@ export const listarSolicitacoes = async (req: Request, res: Response) => {
   }
 };
 
+// ===================== LISTAR JUSTIFICATIVAS PENDENTES =====================
+export const listarJustificativas = async (req: Request, res: Response) => {
+  try {
+    const justificativas = await prisma.justificativaAbono.findMany({
+      where: { status: 'PENDENTE' },
+      include: { colaborador: true },
+    });
+    return res.json(justificativas);
+  } catch (error) {
+    return res.status(500).json({ error: 'Erro ao listar justificativas' });
+  }
+};
+
+// ===================== APROVAR / REJEITAR JUSTIFICATIVA =====================
+export const aprovarJustificativa = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body; // "APROVADO" ou "REJEITADO"
+
+    const justificativa = await prisma.justificativaAbono.update({
+      where: { id: Number(id) },
+      data: { status },
+    });
+
+    return res.json(justificativa);
+  } catch (error) {
+    return res.status(500).json({ error: 'Erro ao aprovar justificativa' });
+  }
+};
+
 // ===================== RELATÓRIO (INDIVIDUAL OU GERAL) =====================
 export const relatorioHoras = async (req: Request, res: Response) => {
   try {
@@ -101,28 +131,28 @@ export const atualizarColaborador = async (req: Request, res: Response) => {
   }
 };
 
-// ===================== EXCLUIR COLABORADOR (COM LIMPEZA) =====================
+// ===================== EXCLUIR COLABORADOR =====================
 export const excluirColaborador = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const colaboradorId = Number(id);
 
-    // 1. Exclui os pontos do colaborador
+    // 1. Exclui os pontos
     await prisma.ponto.deleteMany({
       where: { colaboradorId },
     });
 
-    // 2. Exclui as justificativas do colaborador
+    // 2. Exclui as justificativas
     await prisma.justificativaAbono.deleteMany({
       where: { colaboradorId },
     });
 
-    // 3. Exclui as solicitações de correção do colaborador
+    // 3. Exclui as solicitações de correção
     await prisma.solicitacaoCorrecao.deleteMany({
       where: { colaboradorId },
     });
 
-    // 4. Agora sim, exclui o colaborador
+    // 4. Exclui o colaborador
     await prisma.colaborador.delete({
       where: { id: colaboradorId },
     });
