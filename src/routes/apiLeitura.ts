@@ -4,10 +4,10 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 const router = Router();
 
-// ===================== VERIFICAR API KEY =====================
+// ===================== VERIFICAR API KEY (NA URL) =====================
 function verificarApiKey(req: any, res: any, next: any) {
-  // Aceita a chave em qualquer um desses cabeçalhos
-  const apiKey = req.headers['x-api-key'] || req.headers['apikey'] || req.headers['api_key'];
+  // Aceita a chave vinda na URL (query string) ou no header (para o Postman)
+  const apiKey = req.query.api_key || req.headers['x-api-key'] || req.headers['apikey'];
   
   if (apiKey !== process.env.SE_READ_API_KEY) {
     return res.status(403).json({ error: 'Acesso negado: API Key inválida' });
@@ -33,7 +33,7 @@ router.get('/colaboradores', verificarApiKey, async (req: any, res: any) => {
       }
     });
 
-    // Retorna como objeto (uma chave para leitura)
+    // Retorna como objet (para o SoftExpert "aprender")
     return res.json({ colaboradores: primeiroColaborador });
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao consultar colaboradores' });
