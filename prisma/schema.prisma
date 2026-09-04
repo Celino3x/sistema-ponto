@@ -15,9 +15,11 @@ model Colaborador {
   usuario      String   @unique
   senha        String
   role         String   @default("COLABORADOR")
+  funcao       String?  // NOVO CAMPO
+  area         String?  // NOVO CAMPO
   pontos       Ponto[]
   solicitacoes SolicitacaoCorrecao[]
-  justificativas JustificativaAbono[]  // <--- ADICIONE ESTA LINHA AQUI
+  justificativas JustificativaAbono[]
   criadoEm     DateTime @default(now())
 }
 

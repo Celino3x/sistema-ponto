@@ -162,3 +162,24 @@ export const excluirColaborador = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Erro ao excluir colaborador' });
   }
 };
+// ===================== ATUALIZAR COLABORADOR (COM MODAL) =====================
+export const atualizarColaborador = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { nome, matricula, endereco, usuario, senha, funcao, area, role } = req.body;
+
+    const dados: any = { nome, matricula, endereco, usuario, funcao, area, role };
+    if (senha) {
+      dados.senha = await bcrypt.hash(senha, 10);
+    }
+
+    const colaborador = await prisma.colaborador.update({
+      where: { id: Number(id) },
+      data: dados,
+    });
+
+    return res.json({ message: 'Colaborador atualizado!', colaborador });
+  } catch (error) {
+    return res.status(400).json({ error: 'Erro ao atualizar colaborador' });
+  }
+};
