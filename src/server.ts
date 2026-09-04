@@ -10,15 +10,12 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
+// SERVE OS ARQUIVOS HTML DA PASTA PUBLIC
 app.use(express.static('public'));
 
 // Rotas do sistema
 app.use('/auth', authRoutes);
 app.use('/api/ponto', pontoRoutes);
 app.use('/admin', adminRoutes);
-
-app.get('/', (req, res) => {
-  res.send('🟢 Sistema de Ponto rodando na Vercel!');
-});
 
 export default app;
