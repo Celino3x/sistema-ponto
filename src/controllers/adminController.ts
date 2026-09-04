@@ -39,13 +39,25 @@ export const listarColaboradores = async (req: Request, res: Response) => {
   }
 };
 
+// ===================== LISTAR SOLICITAÇÕES PENDENTES =====================
+export const listarSolicitacoes = async (req: Request, res: Response) => {
+  try {
+    const solicitacoes = await prisma.solicitacaoCorrecao.findMany({
+      where: { status: 'PENDENTE' },
+      include: { colaborador: true },
+    });
+    return res.json(solicitacoes);
+  } catch (error) {
+    return res.status(500).json({ error: 'Erro ao listar solicitações' });
+  }
+};
+
 // ===================== RELATÓRIO (INDIVIDUAL OU GERAL) =====================
 export const relatorioHoras = async (req: Request, res: Response) => {
   try {
     const { colaboradorId, dataInicio, dataFim } = req.query;
     const colaboradorIdNum = colaboradorId ? Number(colaboradorId) : undefined;
 
-    // Obter todos os pontos (individual ou de todos)
     const pontos = await prisma.ponto.findMany({
       where: {
         ...(colaboradorIdNum ? { colaboradorId: colaboradorIdNum } : {}),
@@ -57,10 +69,8 @@ export const relatorioHoras = async (req: Request, res: Response) => {
       include: { colaborador: { select: { nome: true } } },
     });
 
-    // Calcular horas totais
     const totalHoras = pontos.reduce((acc, ponto) => acc + (ponto.horasTrabalhadas || 0), 0);
 
-    // Retornar os dados do relatório
     return res.json({ totalHoras, pontos });
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao gerar relatório' });
@@ -78,7 +88,6 @@ export const aprovarSolicitacao = async (req: Request, res: Response) => {
       data: { status },
     });
 
-    // Se aprovado, atualizar o ponto
     if (status === 'APROVADO') {
       await prisma.ponto.update({
         where: { id: solicitacao.pontoId! },
@@ -100,14 +109,12 @@ export const aprovarTodas = async (req: Request, res: Response) => {
       where: { status: 'PENDENTE' },
     });
 
-    // Atualizar status das solicitações
     for (const sol of solicitacoes) {
       await prisma.solicitacaoCorrecao.update({
         where: { id: sol.id },
         data: { status },
       });
 
-      // Se aprovado, atualizar o ponto
       if (status === 'APROVADO') {
         await prisma.ponto.update({
           where: { id: sol.pontoId! },

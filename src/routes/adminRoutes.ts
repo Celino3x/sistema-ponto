@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { 
   criarColaborador, 
   listarColaboradores, 
+  listarSolicitacoes, 
   relatorioHoras, 
   aprovarSolicitacao, 
   aprovarTodas 
@@ -20,8 +21,8 @@ router.get('/colaboradores', listarColaboradores);
 router.get('/relatorio', relatorioHoras);
 
 // Rotas de Solicitações
+router.get('/solicitacoes', listarSolicitacoes);
 router.put('/solicitacoes/:id', aprovarSolicitacao);
 router.put('/solicitacoes/aprovar-todas', aprovarTodas);
-router.get('/solicitacoes', listarSolicitacoes); // (Você precisa adicionar esta função no controller!)
 
 export default router;
