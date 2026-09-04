@@ -290,13 +290,16 @@
             area.style.display = area.style.display === 'none' ? 'block' : 'none';
         }
 
+        // Função para fazer upload direto para o Cloudinary (FORÇANDO PDF)
         async function uploadParaCloudinary(file) {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('upload_preset', UPLOAD_PRESET);
+            // Força o Cloudinary a salvar como PDF puro, sem transformar em imagem
+            formData.append('resource_type', 'raw');
+            formData.append('format', 'pdf');
 
             try {
-                // MUDANÇA IMPORTANTE: Usamos /raw/upload para PDFs e arquivos brutos!
                 const resposta = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/raw/upload`, {
                     method: 'POST',
                     body: formData
