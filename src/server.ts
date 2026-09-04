@@ -10,12 +10,13 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// Serve os arquivos da pasta public (que agora está dentro do dist)
-app.use(express.static('dist/public'));
+// Serve os arquivos da pasta public
+app.use(express.static('public'));
 
 // Rotas do sistema
 app.use('/auth', authRoutes);
 app.use('/api/ponto', pontoRoutes);
 app.use('/admin', adminRoutes);
 
+// Exporta o app para a pasta api
 export default app;
