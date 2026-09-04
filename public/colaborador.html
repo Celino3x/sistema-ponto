@@ -113,6 +113,10 @@
     </div>
 
     <script>
+        // ===================== CONFIGURAÇÃO CLOUDINARY =====================
+        const CLOUD_NAME = 'aj8pwgo1'; // ⚠️ SUBSTITUA PELO SEU CLOUD NAME
+        const UPLOAD_PRESET = 'sistema_ponto'; // ⚠️ SUBSTITUA PELO NOME DO SEU UPLOAD PRESET
+
         const token = localStorage.getItem('token');
         const nome = localStorage.getItem('nome');
 
@@ -133,7 +137,6 @@
                         `${latAtual.toFixed(4)} <small>lat</small> / ${lngAtual.toFixed(4)} <small>lng</small>`;
                     document.getElementById('statusGPS').innerHTML = '<i class="fas fa-check-circle"></i> Ativo';
 
-                    // BUSCA O ENDEREÇO AUTOMATICAMENTE
                     await buscarEndereco(latAtual, lngAtual);
                 }, () => {
                     document.getElementById('statusGPS').innerHTML = '🟡 Simulado';
@@ -154,19 +157,14 @@
                 const resposta = await fetch(url);
                 const dados = await resposta.json();
 
-                // EXTRAI O BAIRRO MAIS PRECISO (prioridade: suburb > locality > city)
                 let bairro = dados.suburb || dados.locality || dados.city || 'Bairro não identificado';
-
-                // Extrai cidade e estado (corta o texto gigante da região metropolitana)
                 let cidade = dados.city || dados.principalSubdivision || '';
                 let estado = dados.principalSubdivisionCode ? dados.principalSubdivisionCode.split('-')[1] : '';
 
-                // Evita que "cidade" fique gigante (ex: Região Metropolitana)
                 if (cidade.includes('Região')) {
                     cidade = dados.principalSubdivision || '';
                 }
 
-                // Exibe: Bairro, Cidade - Estado
                 document.getElementById('endereco').innerHTML = 
                     `<i class="fas fa-map-pin"></i> <span>${bairro}, ${cidade} ${estado}</span>`;
             } catch (error) {
@@ -286,10 +284,28 @@
             }
         }
 
-        // ===================== JUSTIFICAR / ABONAR =====================
+        // ===================== JUSTIFICAR / ABONAR (COM CLOUDINARY) =====================
         async function abrirJustificativa() {
             const area = document.getElementById('areaJustificativa');
             area.style.display = area.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function uploadParaCloudinary(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', UPLOAD_PRESET);
+
+            try {
+                const resposta = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const dados = await resposta.json();
+                return dados.secure_url;
+            } catch (error) {
+                console.error(error);
+                throw new Error('Erro ao upload para Cloudinary');
+            }
         }
 
         async function enviarJustificativa() {
@@ -300,13 +316,13 @@
             let anexoUrl = null;
             if (anexoInput.files.length > 0) {
                 const file = anexoInput.files[0];
-                const reader = new FileReader();
-                
-                const resultadoAnexo = await new Promise((resolve) => {
-                    reader.onload = (e) => resolve(e.target.result);
-                    reader.readAsDataURL(file);
-                });
-                anexoUrl = resultadoAnexo;
+                mostrarToast('📤 Enviando anexo para a nuvem...', '#4f46e5');
+                try {
+                    anexoUrl = await uploadParaCloudinary(file);
+                } catch (error) {
+                    mostrarToast('❌ Erro ao upload do anexo', '#dc2626');
+                    return;
+                }
             }
 
             if (!dataFalta || !motivo) {
