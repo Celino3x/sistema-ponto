@@ -66,16 +66,13 @@
         .btn-aprovar { background: #16a34a; }
         .btn-rejeitar { background: #dc2626; }
 
-        /* ALERTA DE 15 DIAS */
         .alerta15dias { background: #fef2f2; border: 1px solid #dc2626; border-radius: 8px; padding: 8px; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #dc2626; display: flex; align-items: center; gap: 8px; }
 
-        /* MODAL */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: none; justify-content: center; align-items: center; }
         .modal { background: white; padding: 32px; border-radius: 16px; width: 90%; max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
         .modal h3 { margin-bottom: 24px; color: #0b1a33; }
         .modal .close { position: absolute; top: 16px; right: 16px; font-size: 24px; cursor: pointer; color: #64748b; }
 
-        /* MODAL DE VISUALIZAÇÃO */
         .viewer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; display: none; justify-content: center; align-items: center; flex-direction: column; }
         .viewer-overlay iframe { width: 90%; height: 85vh; border: none; border-radius: 12px; background: white; }
         .viewer-overlay img { max-width: 90%; max-height: 85vh; border-radius: 12px; }
@@ -285,11 +282,13 @@
     </div>
 
     <script>
+        // Obtém o token do localStorage
         const token = localStorage.getItem('token');
         const nome = localStorage.getItem('nome');
         const role = localStorage.getItem('role');
         let relatorioAtual = [];
 
+        // Verifica se está logado e é ADMIN
         if (!token || role !== 'ADMIN') {
             window.location.href = '/';
         }
@@ -330,31 +329,53 @@
         // ===================== CARDS DE RESUMO =====================
         async function carregarCards() {
             try {
-                const resColab = await fetch('/admin/colaboradores', { headers: { 'Authorization': `Bearer ${token}` } });
+                const resColab = await fetch('/api/ponto/admin/colaboradores', { 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
+                
+                if (!resColab.ok) {
+                    console.error('Erro ao carregar colaboradores:', resColab.status);
+                    return;
+                }
+                
                 const colabs = await resColab.json();
-                document.getElementById('totalColaboradores').textContent = colabs.length;
+                document.getElementById('totalColaboradores').textContent = colabs.length || 0;
 
-                const resSol = await fetch('/admin/solicitacoes', { headers: { 'Authorization': `Bearer ${token}` } });
+                const resSol = await fetch('/api/ponto/admin/solicitacoes', { 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
+                
+                if (!resSol.ok) {
+                    console.error('Erro ao carregar solicitações:', resSol.status);
+                    return;
+                }
+                
                 const sols = await resSol.json();
-                document.getElementById('totalSolicitacoes').textContent = sols.length;
+                document.getElementById('totalSolicitacoes').textContent = sols.length || 0;
 
-                const resRel = await fetch('/admin/relatorio', { headers: { 'Authorization': `Bearer ${token}` } });
-                const rel = await resRel.json();
-                document.getElementById('totalHoras').textContent = rel.totalHoras ? rel.totalHoras.toFixed(2) : '0.00';
             } catch (error) {
-                console.error(error);
+                console.error('Erro ao carregar cards:', error);
             }
         }
 
         // ===================== COLABORADORES =====================
         async function carregarColaboradores() {
             try {
-                const response = await fetch('/admin/colaboradores', { headers: { 'Authorization': `Bearer ${token}` } });
+                const response = await fetch('/api/ponto/admin/colaboradores', { 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
+
+                if (!response.ok) {
+                    console.error('Erro ao carregar colaboradores:', response.status);
+                    document.getElementById('tabelaColaboradores').innerHTML = '<tr><td colspan="6" style="text-align: center; color: #dc2626;">Erro ao carregar dados. Verifique se você está logado como ADMIN.</td></tr>';
+                    return;
+                }
+
                 const dados = await response.json();
 
                 document.getElementById('tabelaColaboradores').innerHTML = '';
 
-                if (dados.length === 0) {
+                if (!dados || dados.length === 0) {
                     document.getElementById('tabelaColaboradores').innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b;">Nenhum colaborador encontrado.</td></tr>';
                     return;
                 }
@@ -362,11 +383,11 @@
                 dados.forEach(col => {
                     const div = document.createElement('tr');
                     div.innerHTML = `
-                        <td>${col.nome}</td>
-                        <td>${col.matricula}</td>
+                        <td>${col.nome || '-'}</td>
+                        <td>${col.matricula || '-'}</td>
                         <td>${col.funcao || '-'}</td>
                         <td>${col.area || '-'}</td>
-                        <td>${col.usuario}</td>
+                        <td>${col.usuario || '-'}</td>
                         <td>
                             <button class="edit-btn" onclick="abrirModal(${col.id})"><i class="fas fa-edit"></i> Editar</button>
                             <button class="delete-btn" onclick="excluirColaborador(${col.id})"><i class="fas fa-trash"></i> Excluir</button>
@@ -375,7 +396,8 @@
                     document.getElementById('tabelaColaboradores').appendChild(div);
                 });
             } catch (error) {
-                console.error(error);
+                console.error('Erro ao carregar colaboradores:', error);
+                document.getElementById('tabelaColaboradores').innerHTML = '<tr><td colspan="6" style="text-align: center; color: #dc2626;">Erro ao carregar dados.</td></tr>';
             }
         }
 
@@ -396,9 +418,12 @@
             }
 
             try {
-                const response = await fetch('/admin/colaboradores', {
+                const response = await fetch('/api/ponto/admin/colaboradores', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${token}` 
+                    },
                     body: JSON.stringify(dados)
                 });
                 const result = await response.json();
@@ -424,7 +449,9 @@
         // ===================== MODAL DE EDIÇÃO =====================
         async function abrirModal(id) {
             try {
-                const response = await fetch('/admin/colaboradores', { headers: { 'Authorization': `Bearer ${token}` } });
+                const response = await fetch('/api/ponto/admin/colaboradores', { 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
                 const dados = await response.json();
                 const col = dados.find(c => c.id === id);
 
@@ -461,9 +488,12 @@
             };
 
             try {
-                const response = await fetch(`/admin/colaboradores/${id}`, {
+                const response = await fetch(`/api/ponto/admin/colaboradores/${id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${token}` 
+                    },
                     body: JSON.stringify(dados)
                 });
                 if (response.ok) {
@@ -481,7 +511,7 @@
             if (!confirm('Tem certeza que deseja excluir este colaborador?')) return;
 
             try {
-                const response = await fetch(`/admin/colaboradores/${id}`, {
+                const response = await fetch(`/api/ponto/admin/colaboradores/${id}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -501,15 +531,27 @@
         // ===================== RELATÓRIO =====================
         async function carregarColaboradoresRelatorio() {
             try {
-                const response = await fetch('/admin/colaboradores', { headers: { 'Authorization': `Bearer ${token}` } });
+                const response = await fetch('/api/ponto/admin/colaboradores', { 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
+                
+                if (!response.ok) {
+                    console.error('Erro ao carregar colaboradores para relatório:', response.status);
+                    return;
+                }
+                
                 const dados = await response.json();
                 const select = document.getElementById('colaboradorRelatorio');
-                dados.forEach(col => {
-                    const option = document.createElement('option');
-                    option.value = col.id;
-                    option.textContent = col.nome;
-                    select.appendChild(option);
-                });
+                select.innerHTML = '<option value="">Todos</option>';
+                
+                if (dados && dados.length > 0) {
+                    dados.forEach(col => {
+                        const option = document.createElement('option');
+                        option.value = col.id;
+                        option.textContent = col.nome || col.matricula;
+                        select.appendChild(option);
+                    });
+                }
             } catch (error) {
                 console.error(error);
             }
@@ -521,18 +563,24 @@
                 const dataInicio = document.getElementById('dataInicio').value;
                 const dataFim = document.getElementById('dataFim').value;
 
-                const response = await fetch(`/admin/relatorio?colaboradorId=${colaboradorId}&dataInicio=${dataInicio}&dataFim=${dataFim}`, {
+                const response = await fetch(`/api/ponto/admin/relatorio?colaboradorId=${colaboradorId}&dataInicio=${dataInicio}&dataFim=${dataFim}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+                
+                if (!response.ok) {
+                    alert('Erro ao gerar relatório');
+                    return;
+                }
+                
                 const dados = await response.json();
 
-                if (dados.pontos.length > 0) {
+                if (dados.pontos && dados.pontos.length > 0) {
                     relatorioAtual = dados.pontos.map(p => {
                         return {
-                            nome: p.colaborador.nome,
-                            matricula: p.colaborador.matricula,
-                            funcao: p.colaborador.funcao || '-',
-                            area: p.colaborador.area || '-',
+                            nome: p.colaborador?.nome || '-',
+                            matricula: p.colaborador?.matricula || '-',
+                            funcao: p.colaborador?.funcao || '-',
+                            area: p.colaborador?.area || '-',
                             horas: p.horasTrabalhadas ? p.horasTrabalhadas.toFixed(2) : '0.00'
                         };
                     });
@@ -580,12 +628,21 @@
         // ===================== SOLICITAÇÕES =====================
         async function carregarSolicitacoes() {
             try {
-                const response = await fetch('/admin/solicitacoes', { headers: { 'Authorization': `Bearer ${token}` } });
+                const response = await fetch('/api/ponto/admin/solicitacoes', { 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
+                
+                if (!response.ok) {
+                    console.error('Erro ao carregar solicitações:', response.status);
+                    document.getElementById('listaSolicitacoes').innerHTML = '<div style="color: #dc2626;">Erro ao carregar solicitações.</div>';
+                    return;
+                }
+                
                 const dados = await response.json();
 
                 document.getElementById('listaSolicitacoes').innerHTML = '';
 
-                if (dados.length === 0) {
+                if (!dados || dados.length === 0) {
                     document.getElementById('listaSolicitacoes').innerHTML = '<div style="color: #64748b;">Nenhuma solicitação pendente.</div>';
                     return;
                 }
@@ -595,9 +652,9 @@
                     div.className = 'approval-card';
                     div.innerHTML = `
                         <div class="info">
-                            <strong>${sol.colaborador.nome}</strong>
-                            <span>${sol.motivo}</span>
-                            <span>Nova hora: ${new Date(sol.novaHora).toLocaleString('pt-BR')}</span>
+                            <strong>${sol.colaborador?.nome || 'Colaborador'}</strong>
+                            <span>${sol.motivo || 'Sem motivo'}</span>
+                            <span>Nova hora: ${sol.novaHora ? new Date(sol.novaHora).toLocaleString('pt-BR') : '-'}</span>
                         </div>
                         <div class="acoes">
                             <button class="btn-aprovar" onclick="aprovar(${sol.id}, 'APROVADO')">Aprovar</button>
@@ -608,19 +665,25 @@
                 });
             } catch (error) {
                 console.error(error);
+                document.getElementById('listaSolicitacoes').innerHTML = '<div style="color: #dc2626;">Erro ao carregar solicitações.</div>';
             }
         }
 
         async function aprovar(id, status) {
             try {
-                const response = await fetch(`/admin/solicitacoes/${id}`, {
+                const response = await fetch(`/api/ponto/admin/solicitacoes/${id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${token}` 
+                    },
                     body: JSON.stringify({ status })
                 });
                 if (response.ok) {
                     carregarSolicitacoes();
                     carregarCards();
+                } else {
+                    alert('Erro ao processar solicitação');
                 }
             } catch (error) {
                 alert('Erro ao processar solicitação');
@@ -629,9 +692,12 @@
 
         async function aprovarTodas(status) {
             try {
-                const response = await fetch('/admin/solicitacoes/aprovar-todas', {
+                const response = await fetch('/api/ponto/admin/solicitacoes/aprovar-todas', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${token}` 
+                    },
                     body: JSON.stringify({ status })
                 });
                 const result = await response.json();
@@ -650,12 +716,21 @@
         // ===================== JUSTIFICATIVAS =====================
         async function carregarJustificativas() {
             try {
-                const response = await fetch('/admin/justificativas', { headers: { 'Authorization': `Bearer ${token}` } });
+                const response = await fetch('/api/ponto/admin/justificativas', { 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
+                
+                if (!response.ok) {
+                    console.error('Erro ao carregar justificativas:', response.status);
+                    document.getElementById('listaJustificativas').innerHTML = '<div style="color: #dc2626;">Erro ao carregar justificativas.</div>';
+                    return;
+                }
+                
                 const dados = await response.json();
 
                 document.getElementById('listaJustificativas').innerHTML = '';
 
-                if (dados.length === 0) {
+                if (!dados || dados.length === 0) {
                     document.getElementById('listaJustificativas').innerHTML = '<div style="color: #64748b;">Nenhuma justificativa pendente.</div>';
                     return;
                 }
@@ -665,9 +740,9 @@
                     div.className = 'approval-card';
                     div.innerHTML = `
                         <div class="info">
-                            <strong>${just.colaborador.nome}</strong>
-                            <span>${just.motivo}</span>
-                            <span>Data: ${new Date(just.dataFalta).toLocaleDateString('pt-BR')}</span>
+                            <strong>${just.colaborador?.nome || 'Colaborador'}</strong>
+                            <span>${just.motivo || 'Sem motivo'}</span>
+                            <span>Data: ${just.dataFalta ? new Date(just.dataFalta).toLocaleDateString('pt-BR') : '-'}</span>
                             <br>
                             <span style="font-size: 12px; color: #64748b;">Afastamento: ${just.alerta15Dias ? '<span class="alerta15dias"><i class="fas fa-exclamation-triangle"></i> ATENÇÃO: Mais de 15 dias! Encaminhar ao INSS/eSocial.</span>' : 'Menos de 15 dias'}</span>
                             ${just.anexoUrl ? `<br><button class="view-btn" onclick="visualizarAnexo('${just.anexoUrl}')"><i class="fas fa-eye"></i> Visualizar Anexo</button>` : ''}
@@ -681,6 +756,7 @@
                 });
             } catch (error) {
                 console.error(error);
+                document.getElementById('listaJustificativas').innerHTML = '<div style="color: #dc2626;">Erro ao carregar justificativas.</div>';
             }
         }
 
@@ -699,13 +775,18 @@
         // ===================== APROVAR JUSTIFICATIVA =====================
         async function aprovarJustificativa(id, status) {
             try {
-                const response = await fetch(`/admin/justificativas/${id}`, {
+                const response = await fetch(`/api/ponto/admin/justificativas/${id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${token}` 
+                    },
                     body: JSON.stringify({ status })
                 });
                 if (response.ok) {
                     carregarJustificativas();
+                } else {
+                    alert('Erro ao processar justificativa');
                 }
             } catch (error) {
                 alert('Erro ao processar justificativa');
@@ -714,9 +795,12 @@
 
         async function aprovarTodasJustificativas(status) {
             try {
-                const response = await fetch('/admin/justificativas/aprovar-todas', {
+                const response = await fetch('/api/ponto/admin/justificativas/aprovar-todas', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${token}` 
+                    },
                     body: JSON.stringify({ status })
                 });
                 const result = await response.json();

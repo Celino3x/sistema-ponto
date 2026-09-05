@@ -93,3 +93,157 @@ export const solicitarJustificativa = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Erro ao solicitar justificativa' });
   }
 };
+// ===================== FUNÇÕES ADMIN =====================
+
+// Listar todos os colaboradores
+export const listarAdminColaboradores = async (req: Request, res: Response) => {
+  try {
+    const colaboradores = await prisma.colaborador.findMany({
+      select: {
+        id: true,
+        nome: true,
+        matricula: true,
+        endereco: true,
+        usuario: true,
+        role: true,
+        pontos: {
+          orderBy: { entrada: 'desc' },
+          take: 1
+        }
+      }
+    });
+
+    return res.json(colaboradores);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Erro ao listar colaboradores' });
+  }
+};
+
+// Listar solicitações pendentes
+export const listarAdminSolicitacoes = async (req: Request, res: Response) => {
+  try {
+    const solicitacoes = await prisma.solicitacaoCorrecao.findMany({
+      where: { status: 'pendente' },
+      include: {
+        colaborador: true
+      },
+      orderBy: { id: 'asc' }
+    });
+
+    return res.json(solicitacoes);
+  } catch (error) {
+    console.error('Erro ao listar solicitações:', error);
+    return res.status(500).json({ error: 'Erro ao listar solicitações' });
+  }
+};
+
+// Listar justificativas pendentes
+export const listarAdminJustificativas = async (req: Request, res: Response) => {
+  try {
+    const justificativas = await prisma.justificativaAbono.findMany({
+      where: { status: 'pendente' },
+      include: {
+        colaborador: true
+      },
+      orderBy: { id: 'asc' }
+    });
+
+    return res.json(justificativas);
+  } catch (error) {
+    console.error('Erro ao listar justificativas:', error);
+    return res.status(500).json({ error: 'Erro ao listar justificativas' });
+  }
+};
+
+// Aprovar/rejeitar solicitação
+export const aprovarAdminSolicitacao = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status || !['APROVADO', 'REJEITADO'].includes(status)) {
+      return res.status(400).json({ error: 'Status deve ser APROVADO ou REJEITADO' });
+    }
+
+    const solicitacao = await prisma.solicitacaoCorrecao.update({
+      where: { id: Number(id) },
+      data: {
+        status: status === 'APROVADO' ? 'aprovado' : 'rejeitado'
+      }
+    });
+
+    if (status === 'APROVADO') {
+      const ponto = await prisma.ponto.findUnique({
+        where: { id: solicitacao.pontoId }
+      });
+
+      if (ponto) {
+        if (solicitacao.tipo === 'entrada') {
+          await prisma.ponto.update({
+            where: { id: solicitacao.pontoId },
+            data: { entrada: solicitacao.novaHora }
+          });
+        } else if (solicitacao.tipo === 'saida') {
+          await prisma.ponto.update({
+            where: { id: solicitacao.pontoId },
+            data: { saida: solicitacao.novaHora }
+          });
+        }
+      }
+    }
+
+    return res.json({ message: `✅ Solicitação ${status} com sucesso!` });
+  } catch (error) {
+    console.error(error);
+    return res.status(404).json({ error: 'Solicitação não encontrada' });
+  }
+};
+
+// Gerar relatório
+export const gerarAdminRelatorio = async (req: Request, res: Response) => {
+  try {
+    const { colaboradorId, dataInicio, dataFim } = req.query;
+
+    const where: any = {};
+    if (colaboradorId) where.colaboradorId = Number(colaboradorId);
+    if (dataInicio) where.entrada = { gte: new Date(dataInicio as string) };
+    if (dataFim) where.saida = { lte: new Date(dataFim as string) };
+
+    const pontos = await prisma.ponto.findMany({
+      where,
+      include: {
+        colaborador: true
+      },
+      orderBy: { entrada: 'asc' }
+    });
+
+    const resultado: any = {};
+    for (const p of pontos) {
+      if (!resultado[p.colaboradorId]) {
+        resultado[p.colaboradorId] = {
+          colaborador: p.colaborador,
+          horasTrabalhadas: 0,
+          totalRegistros: 0
+        };
+      }
+      if (p.horasTrabalhadas) {
+        resultado[p.colaboradorId].horasTrabalhadas += p.horasTrabalhadas;
+        resultado[p.colaboradorId].totalRegistros += 1;
+      }
+    }
+
+    const finalResult = Object.values(resultado).map((item: any) => ({
+      ...item,
+      horasTrabalhadas: item.horasTrabalhadas || 0
+    }));
+
+    return res.json({
+      totalHoras: finalResult.reduce((acc: number, cur: any) => acc + cur.horasTrabalhadas, 0),
+      pontos: finalResult
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Erro ao gerar relatório' });
+  }
+};

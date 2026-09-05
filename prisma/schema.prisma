@@ -4,55 +4,55 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL_CORRECT")
 }
 
 model Colaborador {
-  id              Int                      @id @default(autoincrement())
-  nome            String
-  matricula       String                   @unique
-  endereco        String
-  usuario         String                   @unique
-  senha           String
-  role            String                   @default("COLABORADOR")
-  funcao          String?
-  area            String?
-  pontos          Ponto[]
-  solicitacoes    SolicitacaoCorrecao[]
-  justificativas  JustificativaAbono[]
-  criadoEm        DateTime                 @default(now())
+  id             Int                   @id @default(autoincrement())
+  nome           String
+  matricula      String                @unique
+  endereco       String
+  usuario        String                @unique
+  senha          String
+  role           String                @default("COLABORADOR")
+  criadoEm       DateTime              @default(now())
+  area           String?
+  funcao         String?
+  justificativas JustificativaAbono[]
+  pontos         Ponto[]
+  solicitacoes   SolicitacaoCorrecao[]
 }
 
 model Ponto {
-  id              Int         @id @default(autoincrement())
-  colaboradorId   Int
-  colaborador     Colaborador @relation(fields: [colaboradorId], references: [id])
-  entrada         DateTime
-  saida           DateTime?
+  id               Int         @id @default(autoincrement())
+  colaboradorId    Int
+  entrada          DateTime
+  saida            DateTime?
   horasTrabalhadas Float?
-  status          String      @default("NORMAL") // Novo campo: "NORMAL" ou "ABONADO"
-  criadoEm        DateTime    @default(now())
+  criadoEm         DateTime    @default(now())
+  status           String      @default("NORMAL")
+  colaborador      Colaborador @relation(fields: [colaboradorId], references: [id])
 }
 
 model SolicitacaoCorrecao {
-  id              Int         @id @default(autoincrement())
-  colaboradorId   Int
-  colaborador     Colaborador @relation(fields: [colaboradorId], references: [id])
-  pontoId         Int?
-  tipo            String      @default("entrada")
-  motivo          String
-  novaHora        DateTime
-  status          String      @default("PENDENTE")
-  criadoEm        DateTime    @default(now())
+  id            Int         @id @default(autoincrement())
+  colaboradorId Int
+  pontoId       Int?
+  motivo        String
+  novaHora      DateTime
+  status        String      @default("PENDENTE")
+  criadoEm      DateTime    @default(now())
+  tipo          String      @default("entrada")
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
 }
 
 model JustificativaAbono {
-  id              Int         @id @default(autoincrement())
-  colaboradorId   Int
-  colaborador     Colaborador @relation(fields: [colaboradorId], references: [id])
-  dataFalta       DateTime
-  motivo          String
-  anexoUrl        String?
-  status          String      @default("PENDENTE")
-  criadoEm        DateTime    @default(now())
+  id            Int         @id @default(autoincrement())
+  colaboradorId Int
+  dataFalta     DateTime
+  motivo        String
+  anexoUrl      String?
+  status        String      @default("PENDENTE")
+  criadoEm      DateTime    @default(now())
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
 }
