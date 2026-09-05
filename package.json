@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "description": "Sistema de batida de ponto com geolocalização",
   "main": "api/index.ts",
-  "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "prisma generate",
-    "start": "tsx src/server.ts"
-  },
+"scripts": {
+  "dev": "tsx watch src/server.ts",
+  "build": "prisma generate && tsc",
+  "start": "node dist/src/server.js",
+  "vercel-build": "prisma generate && tsc"
+},
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
