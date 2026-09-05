@@ -173,7 +173,8 @@ export const aprovarAdminSolicitacao = async (req: Request, res: Response) => {
       }
     });
 
-    if (status === 'APROVADO') {
+    // Verifica se pontoId existe antes de usar
+    if (status === 'APROVADO' && solicitacao.pontoId) {
       const ponto = await prisma.ponto.findUnique({
         where: { id: solicitacao.pontoId }
       });
