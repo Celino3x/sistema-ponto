@@ -6,7 +6,6 @@ import authRoutes from './routes/authRoutes';
 import pontoRoutes from './routes/pontoRoutes';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -28,7 +27,5 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(publicDir, 'admin.html'));
 });
 
-// INICIA O SERVIDOR
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
-});
+// Exporta o app para a Vercel (NÃO usar app.listen no ambiente serverless)
+export default app;
